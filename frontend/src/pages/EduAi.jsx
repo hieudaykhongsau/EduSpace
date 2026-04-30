@@ -173,7 +173,7 @@ function SystemBotPanel({ user }) {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const endRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const quickQs = [
     'Cách tạo phòng học?',
@@ -183,7 +183,12 @@ function SystemBotPanel({ user }) {
   ];
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages]);
 
   const sendMsg = async (text) => {
@@ -231,11 +236,10 @@ function SystemBotPanel({ user }) {
       </Flex>
 
       {/* Messages */}
-      <Box flex={1} p={5} overflowY="auto" display="flex" flexDirection="column">
+      <Box ref={scrollRef} flex={1} p={5} overflowY="auto" display="flex" flexDirection="column">
         {messages.map(msg => (
           <ChatMessage key={msg.id} msg={msg} user={user} isSystemBot />
         ))}
-        <div ref={endRef} />
       </Box>
 
       {/* Quick Questions */}
@@ -277,12 +281,17 @@ function SystemBotPanel({ user }) {
 // ─── Edu AI Chat Panel ────────────────────────────────────────────────────────
 function EduChatPanel({ session, onSend, isLoading, user }) {
   const [input, setInput] = useState('');
-  const endRef = useRef(null);
+  const scrollRef = useRef(null);
   const bgLevel3 = useColorModeValue('surface-container', 'surface-container');
   const mainBg = useColorModeValue('surface', 'surface');
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [session?.messages]);
 
   const handleSend = (text) => {
@@ -306,7 +315,7 @@ function EduChatPanel({ session, onSend, isLoading, user }) {
       </Flex>
 
       {/* Messages */}
-      <Box flex={1} p={6} overflowY="auto" display="flex" flexDirection="column">
+      <Box ref={scrollRef} flex={1} p={6} overflowY="auto" display="flex" flexDirection="column">
         {(!session?.messages || session.messages.length === 0) && (
           <>
             <ChatMessage
@@ -327,7 +336,6 @@ function EduChatPanel({ session, onSend, isLoading, user }) {
         {session?.messages?.map(msg => (
           <ChatMessage key={msg.id} msg={msg} user={user} />
         ))}
-        <div ref={endRef} />
       </Box>
 
       {/* Input */}

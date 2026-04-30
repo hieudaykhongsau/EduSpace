@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
 import CreateRoom from './pages/CreateRoom';
+import JoinRoom from './pages/JoinRoom';
 import VideoRoom from './pages/VideoRoom';
 import { ResetPassword } from './pages/ResetPassword';
 import Instructions from './pages/Instructions';
@@ -27,7 +28,6 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        {/* Nhóm các trang CÓ Header và Footer */}
         <Route element={
           <Box minH="100vh" bg="surface" color="on-surface" transition="all 0.2s" display="flex" flexDirection="column">
             <Navbar />
@@ -40,11 +40,10 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/study" element={<StudyArea />} />
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
-          <Route path="/join-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
+          <Route path="/join-room" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
           <Route path="/instructions" element={<Instructions />} />
         </Route>
 
-        {/* Nhóm các trang CÓ Header nhưng KHÔNG có Footer (Dashboard style) */}
         <Route element={
           <Box h="100vh" bg="surface" color="on-surface" transition="all 0.2s" display="flex" flexDirection="column" overflow="hidden">
             <Navbar />
@@ -61,7 +60,6 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Fullscreen Video Room — no Navbar/Footer */}
         <Route path="/room/:roomCode" element={<ProtectedRoute><VideoRoom /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

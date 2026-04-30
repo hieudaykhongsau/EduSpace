@@ -121,7 +121,7 @@ CREATE TABLE community_posts (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
     author_id BIGINT NOT NULL,
     content NVARCHAR(MAX) NOT NULL,
-    media_url VARCHAR(255),
+    media_url VARCHAR(MAX),
     like_count INT NOT NULL DEFAULT 0,
     comment_count INT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT GETDATE(),

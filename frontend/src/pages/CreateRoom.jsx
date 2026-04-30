@@ -122,7 +122,7 @@ export default function CreateRoom() {
             </HStack>
             <HStack justify="space-between" w="full">
               <Text fontSize="sm" color="gray.500">Max Participants</Text>
-              <Badge colorScheme="blue">{createdRoom.memberCount || maxParticipants} slots</Badge>
+              <Badge colorScheme="blue">{maxParticipants} slots</Badge>
             </HStack>
             <HStack justify="space-between" w="full">
               <Text fontSize="sm" color="gray.500">Privacy</Text>

@@ -89,13 +89,49 @@ const Post = ({ post, onLike, onComment }) => {
 
   const cardBg = useColorModeValue('surface', 'surface');
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const shareUrl = `${window.location.origin}/community#post-${post.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({ title: 'Đã chép liên kết!', status: 'success', duration: 2000 });
-    }).catch(err => {
-      toast({ title: 'Lỗi khi chép liên kết', status: 'error', duration: 2000 });
-    });
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'EduSpace Post',
+          text: 'Check out this post on EduSpace!',
+          url: shareUrl,
+        });
+        // Success silently or show toast
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          fallbackCopy(shareUrl);
+        }
+      }
+    } else {
+      fallbackCopy(shareUrl);
+    }
+  };
+
+  const fallbackCopy = (url) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast({ title: 'Đã chép liên kết!', status: 'success', duration: 2000 });
+      }).catch(err => {
+        toast({ title: 'Lỗi khi chép liên kết', status: 'error', duration: 2000 });
+      });
+    } else {
+      // Fallback cho HTTP / trình duyệt cũ
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast({ title: 'Đã chép liên kết!', status: 'success', duration: 2000 });
+      } catch (err) {
+        toast({ title: 'Lỗi khi chép liên kết', status: 'error', duration: 2000 });
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (

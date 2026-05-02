@@ -13,4 +13,5 @@ public interface FriendshipService {
     void unfriend(User user, Long friendId);
     List<UserDto> getFriends(User user);
     List<FriendshipDto> getPendingRequests(User user);
+    List<FriendshipDto> getSentRequests(User user);
 }

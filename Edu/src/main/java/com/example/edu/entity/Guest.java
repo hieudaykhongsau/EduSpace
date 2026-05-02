@@ -1,5 +1,6 @@
 package com.example.edu.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class Guest extends User{
     @Column(name = "dob")
     private LocalDate dob;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL)
     private List<Enrollment> enrollments;
 

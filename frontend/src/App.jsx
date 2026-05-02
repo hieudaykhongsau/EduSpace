@@ -13,6 +13,7 @@ import ScrollToTop from './utils/ScrollToTop';
 import EduAi from './pages/EduAi';
 import Community from './pages/Community';
 import Messenger from './pages/Messenger';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function StudyArea() {
@@ -28,6 +29,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
+        {/* Nhóm các trang CÓ Header và Footer */}
         <Route element={
           <Box minH="100vh" bg="surface" color="on-surface" transition="all 0.2s" display="flex" flexDirection="column">
             <Navbar />
@@ -42,6 +44,7 @@ function App() {
           <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
           <Route path="/join-room" element={<ProtectedRoute><JoinRoom /></ProtectedRoute>} />
           <Route path="/instructions" element={<Instructions />} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         </Route>
 
         <Route element={

@@ -13,5 +13,6 @@ import java.util.Optional;
 public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     List<Friendship> findByRequesterOrAddressee(User requester, User addressee);
     List<Friendship> findByAddresseeAndStatus(User addressee, FriendshipStatus status);
+    List<Friendship> findByRequesterAndStatus(User requester, FriendshipStatus status);
     Optional<Friendship> findByRequesterAndAddressee(User requester, User addressee);
 }

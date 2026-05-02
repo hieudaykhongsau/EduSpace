@@ -128,5 +128,18 @@ public class AuthServiceImpl implements AuthService {
         }
         return UserDto.fromEntity(user);
     }
+
+    @Override
+    public UserDto updateProfile(String fullName) {
+        User user = SecurityUtil.getCurrentUser();
+        if (user == null) {
+            throw new RuntimeException("User not found or not authenticated");
+        }
+        if (fullName != null && !fullName.trim().isEmpty()) {
+            user.setFullName(fullName.trim());
+        }
+        userRepository.save(user);
+        return UserDto.fromEntity(user);
+    }
 }
 

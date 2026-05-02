@@ -3,9 +3,12 @@ import {
   Box, Flex, VStack, HStack, Text, Input, IconButton, Icon,
   Avatar, Heading, useColorModeValue, Badge, Divider, Spinner, useToast
 } from '@chakra-ui/react';
-import { Search, Edit, Video, Phone, Info, Plus, Image as ImageIcon, Paperclip, Send } from 'lucide-react';
+import { Search, Edit, Video, Phone, Info, Plus, Image as ImageIcon, Paperclip, Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import messengerService from '../services/messengerService';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -107,6 +110,64 @@ export default function Messenger() {
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
 
+  const activeChatRef = useRef(activeChat);
+
+  // Keep track of activeChat in a ref for the WebSocket callback
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
+
+  // Connect WebSocket
+  useEffect(() => {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) return;
+
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const socket = new SockJS(`${baseUrl}/ws`);
+    
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      debug: (str) => {
+        // console.log(str);
+      },
+      onConnect: () => {
+        client.subscribe('/user/queue/messages', (msg) => {
+          const newMsg = JSON.parse(msg.body);
+          
+          // Add to current chat window if it's the active chat
+          if (activeChatRef.current && activeChatRef.current.id === newMsg.boxChatId) {
+            setMessages(prev => [...prev, newMsg]);
+          }
+
+          // Update boxChats list (move the updated chat to the top)
+          setBoxChats(prevChats => {
+            const chatIndex = prevChats.findIndex(c => c.id === newMsg.boxChatId);
+            if (chatIndex > -1) {
+              const updatedChat = { ...prevChats[chatIndex], lastMessage: newMsg };
+              const newChats = [...prevChats];
+              newChats.splice(chatIndex, 1);
+              return [updatedChat, ...newChats];
+            }
+            return prevChats;
+          });
+        });
+      },
+      onStompError: (frame) => {
+        console.error('Broker reported error: ' + frame.headers['message']);
+        console.error('Additional details: ' + frame.body);
+      }
+    });
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, []);
+
   // Load box chats
   useEffect(() => {
     const fetchChats = async () => {
@@ -167,7 +228,14 @@ export default function Messenger() {
   return (
     <Flex h="calc(100vh - 73px)" bg={bgLevel1}>
       {/* Conversations List */}
-      <Flex w="320px" bg={bgLevel2} direction="column" borderRight="1px solid" borderColor="surface-container-high">
+      <Flex 
+        w={{ base: '100%', md: '320px' }} 
+        display={{ base: activeChat ? 'none' : 'flex', md: 'flex' }}
+        bg={bgLevel2} 
+        direction="column" 
+        borderRight="1px solid" 
+        borderColor="surface-container-high"
+      >
         <Flex p={4} justify="space-between" align="center">
           <Heading size="md">Messages</Heading>
           <IconButton icon={<Edit size={18} />} variant="ghost" size="sm" aria-label="New Message" borderRadius="full" />
@@ -198,10 +266,23 @@ export default function Messenger() {
 
       {/* Main Chat Window */}
       {activeChat ? (
-        <Flex flex={1} direction="column" bg={bgLevel1}>
+        <Flex 
+          flex={1} 
+          direction="column" 
+          bg={bgLevel1}
+          display={{ base: activeChat ? 'flex' : 'none', md: 'flex' }}
+        >
           {/* Chat Header */}
           <Flex p={4} borderBottom="1px solid" borderColor="surface-container-high" justify="space-between" align="center">
             <HStack spacing={3}>
+              <IconButton 
+                display={{ base: 'flex', md: 'none' }} 
+                icon={<ArrowLeft size={20} />} 
+                variant="ghost" 
+                onClick={() => setActiveChat(null)} 
+                aria-label="Back to chats" 
+                size="sm"
+              />
               <Avatar
                 size="sm"
                 src={otherUser?.avatarUrl || undefined}

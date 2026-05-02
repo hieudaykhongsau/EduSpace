@@ -29,6 +29,16 @@ const friendService = {
   unfriend: async (friendId) => {
     const response = await api.delete(`/api/friends/unfriend/${friendId}`);
     return response.data;
+  },
+
+  getSentRequests: async () => {
+    const response = await api.get('/api/friends/sent');
+    return response.data;
+  },
+
+  cancelRequest: async (addresseeId) => {
+    const response = await api.post(`/api/friends/decline/${addresseeId}`);
+    return response.data;
   }
 };
 

@@ -146,4 +146,24 @@ public class FriendshipServiceImpl implements FriendshipService {
                 .createdAt(f.getCreatedAt())
                 .build()).collect(Collectors.toList());
     }
+
+    @Override
+    public List<FriendshipDto> getSentRequests(User user) {
+        List<Friendship> requests = friendshipRepository.findByRequesterAndStatus(user, FriendshipStatus.PENDING);
+        return requests.stream().map(f -> FriendshipDto.builder()
+                .id(f.getId())
+                .requester(UserDto.builder()
+                        .id(f.getRequester().getId())
+                        .fullName(f.getRequester().getFullName())
+                        .avatarUrl(f.getRequester().getAvatarUrl())
+                        .build())
+                .addressee(UserDto.builder()
+                        .id(f.getAddressee().getId())
+                        .fullName(f.getAddressee().getFullName())
+                        .avatarUrl(f.getAddressee().getAvatarUrl())
+                        .build())
+                .status(f.getStatus())
+                .createdAt(f.getCreatedAt())
+                .build()).collect(Collectors.toList());
+    }
 }

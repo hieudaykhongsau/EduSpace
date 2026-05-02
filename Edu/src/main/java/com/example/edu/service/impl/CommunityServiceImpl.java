@@ -14,9 +14,14 @@ import com.example.edu.repository.CommunityPostRepository;
 import com.example.edu.service.CommunityService;
 import com.example.edu.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,9 +33,29 @@ public class CommunityServiceImpl implements CommunityService {
     private final CommunityPostLikedRepository communityPostLikedRepository;
     private final CommunityCommentRepository communityCommentRepository;
     private final NotificationService notificationService;
+    private final SimpMessageSendingOperations messagingTemplate;
+
+    private static final int MAX_POSTS_PER_USER = 6;
+    private static final int COOLDOWN_SECONDS = 30;
 
     @Override
     public CommunityPostDto createPost(User author, String content, String mediaUrl) {
+        // Rate limit: max posts per user
+        long postCount = communityPostRepository.countByAuthor(author);
+        if (postCount >= MAX_POSTS_PER_USER) {
+            throw new RuntimeException("Bạn đã đạt giới hạn tối đa " + MAX_POSTS_PER_USER + " bài đăng.");
+        }
+
+        // Cooldown: prevent spam
+        Optional<CommunityPost> lastPost = communityPostRepository.findTopByAuthorOrderByCreatedAtDesc(author);
+        if (lastPost.isPresent() && lastPost.get().getCreatedAt() != null) {
+            long secondsSinceLast = ChronoUnit.SECONDS.between(lastPost.get().getCreatedAt(), LocalDateTime.now());
+            if (secondsSinceLast < COOLDOWN_SECONDS) {
+                long remaining = COOLDOWN_SECONDS - secondsSinceLast;
+                throw new RuntimeException("Vui lòng chờ " + remaining + " giây trước khi đăng bài tiếp.");
+            }
+        }
+
         CommunityPost post = CommunityPost.builder()
                 .author(author)
                 .content(content)
@@ -38,7 +63,15 @@ public class CommunityServiceImpl implements CommunityService {
                 .build();
         
         post = communityPostRepository.save(post);
-        return mapToDto(post, false);
+        CommunityPostDto dto = mapToDto(post, false);
+
+        // Broadcast new post to all users
+        Map<String, Object> update = new HashMap<>();
+        update.put("type", "NEW_POST");
+        update.put("data", dto);
+        messagingTemplate.convertAndSend("/topic/community", (Object) update);
+
+        return dto;
     }
 
     @Override
@@ -80,6 +113,13 @@ public class CommunityServiceImpl implements CommunityService {
             }
         }
         communityPostRepository.save(post);
+
+        // Broadcast like update
+        Map<String, Object> update = new HashMap<>();
+        update.put("type", "LIKE_UPDATE");
+        update.put("postId", postId);
+        update.put("likeCount", post.getLikeCount());
+        messagingTemplate.convertAndSend("/topic/community", (Object) update);
     }
 
     @Override
@@ -108,7 +148,17 @@ public class CommunityServiceImpl implements CommunityService {
             );
         }
 
-        return mapCommentToDto(comment);
+        CommunityCommentDto dto = mapCommentToDto(comment);
+
+        // Broadcast comment update
+        Map<String, Object> update = new HashMap<>();
+        update.put("type", "COMMENT_UPDATE");
+        update.put("postId", postId);
+        update.put("commentCount", post.getCommentCount());
+        update.put("newComment", dto);
+        messagingTemplate.convertAndSend("/topic/community", (Object) update);
+
+        return dto;
     }
 
     @Override

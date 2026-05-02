@@ -187,12 +187,7 @@ INSERT INTO guests (user_id, dob) VALUES
 (3, '1998-05-12'), 
 (4, '1995-11-23');
 
--- Add Friendships
--- 2 is friends with 3
-INSERT INTO friendships (requester_id, addressee_id, status) VALUES (2, 3, 'ACCEPTED');
-
--- 4 requested 2
-INSERT INTO friendships (requester_id, addressee_id, status) VALUES (4, 2, 'PENDING');
+-- No pre-seeded friendships (test Add Friend from scratch)
 
 -- Create a Box Chat (1-on-1 between 2 and 3)
 INSERT INTO box_chats (is_group) VALUES (0); -- id 1
@@ -220,5 +215,4 @@ INSERT INTO community_comments (post_id, author_id, content) VALUES
 -- Add Notifications
 INSERT INTO notifications (recipient_id, sender_id, type, content, is_read) VALUES 
 (2, 3, 'LIKE', 'Jane Smith đã thích bài viết của bạn', 0),
-(2, 3, 'COMMENT', 'Jane Smith đã bình luận về bài viết của bạn', 0),
-(2, 4, 'FRIEND_REQUEST', 'Michael Wright đã gửi lời mời kết bạn', 0);
+(2, 3, 'COMMENT', 'Jane Smith đã bình luận về bài viết của bạn', 0);

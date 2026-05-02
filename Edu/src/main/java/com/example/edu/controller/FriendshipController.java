@@ -57,4 +57,10 @@ public class FriendshipController {
         User user = SecurityUtil.getCurrentUser();
         return ResponseEntity.ok(friendshipService.getPendingRequests(user));
     }
+
+    @GetMapping("/sent")
+    public ResponseEntity<List<FriendshipDto>> getSentRequests() {
+        User user = SecurityUtil.getCurrentUser();
+        return ResponseEntity.ok(friendshipService.getSentRequests(user));
+    }
 }

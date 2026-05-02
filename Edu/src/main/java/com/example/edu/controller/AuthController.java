@@ -49,4 +49,10 @@ public class AuthController {
     public ResponseEntity<UserDto> getUserProfile() {
         return ResponseEntity.ok(authService.getUserProfile());
     }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserDto> updateProfile(@RequestBody Map<String, String> body) {
+        String fullName = body.get("fullName");
+        return ResponseEntity.ok(authService.updateProfile(fullName));
+    }
 }

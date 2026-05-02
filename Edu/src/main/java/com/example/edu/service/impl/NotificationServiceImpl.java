@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,11 +36,22 @@ public class NotificationServiceImpl implements NotificationService {
 
         Notification savedNotification = notificationRepository.save(notification);
 
+        // Build a clean DTO to avoid lazy loading issues
+        Map<String, Object> notifDto = new HashMap<>();
+        notifDto.put("id", savedNotification.getId());
+        notifDto.put("content", savedNotification.getContent());
+        notifDto.put("type", savedNotification.getType().name());
+        notifDto.put("read", savedNotification.isRead());
+        notifDto.put("createdAt", savedNotification.getCreatedAt());
+        if (sender != null) {
+            notifDto.put("senderName", sender.getFullName());
+        }
+
         // Send via WebSocket to /user/{username}/queue/notifications
         messagingTemplate.convertAndSendToUser(
                 recipient.getUsername(),
                 "/queue/notifications",
-                savedNotification
+                notifDto
         );
     }
 

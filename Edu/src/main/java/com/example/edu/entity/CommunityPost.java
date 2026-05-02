@@ -28,7 +28,7 @@ public class CommunityPost {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "media_url", columnDefinition = "MAX")
+    @Column(name = "media_url", columnDefinition = "VARCHAR(MAX)")
     private String mediaUrl;
 
     @Column(name = "like_count", nullable = false)

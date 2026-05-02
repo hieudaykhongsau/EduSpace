@@ -12,5 +12,7 @@ public interface AuthService {
     AuthResponse authenticate(AuthRequest request);
 
     UserDto getUserProfile();
+
+    UserDto updateProfile(String fullName);
 }
 

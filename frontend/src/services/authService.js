@@ -24,6 +24,11 @@ const authService = {
   getCurrentUser: async () => {
     const response = await api.get('/api/auth/me');
     return response.data;
+  },
+
+  updateProfile: async (fullName) => {
+    const response = await api.put('/api/auth/profile', { fullName });
+    return response.data;
   }
 };
 

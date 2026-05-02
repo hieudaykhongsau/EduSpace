@@ -11,6 +11,10 @@ import {
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import communityService from '../services/communityService';
+import messengerService from '../services/messengerService';
+import friendService from '../services/friendService';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -91,7 +95,7 @@ const Post = ({ post, onLike, onComment }) => {
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/community#post-${post.id}`;
-
+    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -243,6 +247,46 @@ export default function Community() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageBase64, setImageBase64] = useState(null);
   const fileInputRef = useRef(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [requestedUsers, setRequestedUsers] = useState(new Set()); // To track users we sent requests to
+
+  // Debounced search
+  useEffect(() => {
+    const handler = setTimeout(async () => {
+      if (searchKeyword.trim().length >= 2) {
+        setIsSearching(true);
+        try {
+          const results = await messengerService.searchUsers(searchKeyword);
+          // Optional: filter out current user
+          setSearchResults(results.filter(u => u.id !== user?.userId));
+        } catch (e) {
+          // no-op
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchKeyword, user?.userId]);
+
+  const handleAddFriend = async (targetUserId) => {
+    try {
+      await friendService.sendRequest(targetUserId);
+      toast({ title: 'Đã gửi lời mời kết bạn!', status: 'success', duration: 2000 });
+      setRequestedUsers(prev => new Set(prev).add(targetUserId));
+    } catch (e) {
+      toast({ title: 'Có lỗi xảy ra hoặc đã gửi lời mời rồi', status: 'error', duration: 2000 });
+    }
+  };
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -258,8 +302,62 @@ export default function Community() {
     fetchFeed();
   }, []);
 
+  // WebSocket for real-time community updates
+  useEffect(() => {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) return;
+
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const socket = new SockJS(`${baseUrl}/ws`);
+
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
+      debug: (str) => {
+        // console.log(str);
+      },
+      onConnect: () => {
+        client.subscribe('/topic/community', (msg) => {
+          const update = JSON.parse(msg.body);
+          
+          if (update.type === 'NEW_POST') {
+            // Add new post to top (if it's not from current user who already added it)
+            setPosts(prev => {
+              if (prev.some(p => p.id === update.data.id)) return prev;
+              return [update.data, ...prev];
+            });
+          } 
+          else if (update.type === 'LIKE_UPDATE') {
+            setPosts(prev => prev.map(p => 
+              p.id === update.postId ? { ...p, likeCount: update.likeCount } : p
+            ));
+          } 
+          else if (update.type === 'COMMENT_UPDATE') {
+            setPosts(prev => prev.map(p => 
+              p.id === update.postId ? { ...p, commentCount: update.commentCount } : p
+            ));
+            // Trigger comment refresh for specific post if comments are open
+            // This is handled by each individual Post component below if we wanted, 
+            // but for now updating the count is the main goal.
+          }
+        });
+      }
+    });
+
+    client.activate();
+    return () => {
+      client.deactivate();
+    };
+  }, []);
+
   const handlePost = async () => {
     if (!postContent.trim() && !selectedFile) return;
+    if (cooldown > 0) {
+      toast({ title: `Vui lòng chờ ${cooldown} giây`, status: 'warning', duration: 2000 });
+      return;
+    }
     setPosting(true);
     try {
       const newPost = await communityService.createPost(postContent, imageBase64);
@@ -268,8 +366,17 @@ export default function Community() {
       setSelectedFile(null);
       setImageBase64(null);
       toast({ title: 'Đã đăng bài!', status: 'success', duration: 1500 });
+      // Start cooldown timer
+      setCooldown(30);
+      const timer = setInterval(() => {
+        setCooldown(prev => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
     } catch (e) {
-      toast({ title: 'Failed to create post', status: 'error', duration: 2000 });
+      const msg = e.response?.data?.message || e.response?.data || 'Failed to create post';
+      toast({ title: typeof msg === 'string' ? msg : 'Failed to create post', status: 'error', duration: 3000 });
     } finally {
       setPosting(false);
     }
@@ -320,7 +427,7 @@ export default function Community() {
   return (
     <Flex h="calc(100vh - 73px)" bg={mainBg}>
       {/* Left Sidebar */}
-      <Box w="280px" bg={sidebarBg} borderRightWidth="1px" borderColor="surface-container-high" p={6} display="flex" flexDirection="column">
+      <Box w="280px" bg={sidebarBg} borderRightWidth="1px" borderColor="surface-container-high" p={6} display={{ base: 'none', lg: 'flex' }} flexDirection="column">
         {/* User Info */}
         {user && (
           <HStack spacing={3} mb={8} p={3} bg="surface" borderRadius="xl">
@@ -357,7 +464,7 @@ export default function Community() {
       </Box>
 
       {/* Main Feed */}
-      <Box flex={1} overflowY="auto" p={8} sx={{ '&::-webkit-scrollbar': { width: '0' } }}>
+      <Box flex={1} overflowY="auto" px={{ base: 4, md: 8 }} py={8} sx={{ '&::-webkit-scrollbar': { width: '0' } }}>
         <Box maxW="2xl" mx="auto">
           {/* Create Post Box */}
           <Box bg={cardBg} p={5} borderRadius="2xl" mb={8} boxShadow="sm" border="1px solid" borderColor="surface-container-low">
@@ -418,10 +525,10 @@ export default function Community() {
                 colorScheme="blue" bg="primary" color="white"
                 size="sm" borderRadius="full" px={6}
                 isLoading={posting}
-                isDisabled={!postContent.trim() && !selectedFile}
+                isDisabled={(!postContent.trim() && !selectedFile) || cooldown > 0}
                 onClick={handlePost}
               >
-                Post
+                {cooldown > 0 ? `Wait ${cooldown}s` : 'Post'}
               </Button>
             </Flex>
           </Box>
@@ -440,14 +547,54 @@ export default function Community() {
       </Box>
 
       {/* Right Sidebar - Find Friends */}
-      <Box w="320px" bg={sidebarBg} borderLeftWidth="1px" borderColor="surface-container-high" p={6} overflowY="auto">
+      <Box 
+        w="320px" 
+        bg={sidebarBg} 
+        borderLeftWidth="1px" 
+        borderColor="surface-container-high" 
+        p={6} 
+        overflowY="auto"
+        display={{ base: 'none', xl: 'block' }}
+      >
         <Heading size="md" mb={6} color="on-surface">Find Friends</Heading>
         <HStack bg="surface" p={2} borderRadius="xl" mb={6} border="1px solid" borderColor="surface-container-highest">
           <Icon as={Search} color="outline" ml={2} size={18} />
-          <Input variant="unstyled" placeholder="Search users..." size="sm" />
+          <Input 
+            variant="unstyled" 
+            placeholder="Search users..." 
+            size="sm" 
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+          />
         </HStack>
         <VStack align="stretch" spacing={5}>
           <Text fontSize="xs" fontWeight="bold" color="outline" letterSpacing="wider">SUGGESTED FOR YOU</Text>
+          {isSearching ? (
+            <Flex justify="center"><Spinner size="sm" color="primary" /></Flex>
+          ) : searchResults.length > 0 ? (
+            searchResults.map(result => (
+              <HStack key={result.id} justify="space-between" align="center">
+                <HStack spacing={3}>
+                  <Avatar size="sm" src={result.avatarUrl} name={result.fullName || result.username} getInitials={getInitials} bg="primary" color="white" />
+                  <VStack align="start" spacing={0} maxW="120px">
+                    <Text fontSize="sm" fontWeight="bold" isTruncated w="full">{result.fullName || result.username}</Text>
+                  </VStack>
+                </HStack>
+                <IconButton 
+                  icon={<UserPlus size={16} />} 
+                  size="sm" 
+                  variant="ghost" 
+                  color="primary" 
+                  borderRadius="full" 
+                  aria-label="Add Friend" 
+                  isDisabled={requestedUsers.has(result.id)}
+                  onClick={() => handleAddFriend(result.id)}
+                />
+              </HStack>
+            ))
+          ) : searchKeyword.trim().length >= 2 ? (
+            <Text fontSize="sm" color="outline" textAlign="center">Không tìm thấy ai</Text>
+          ) : null}
         </VStack>
       </Box>
     </Flex>

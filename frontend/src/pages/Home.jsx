@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Flex, Heading, Text, Button, SimpleGrid, Badge, HStack } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Video, MessageSquare, Archive, Clock } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import eduVideo from '../assets/images/eduSpace.mp4';
@@ -122,7 +123,7 @@ export default function Home() {
             Distill complex ideas, host high-fidelity lectures, and foster deep connection. Experience the pedagogical interface designed for clarity, not noise.
           </Text>
           <HStack spacing={4}>
-            <Button bg="primary" color="white" _hover={{ bg: 'primary-container' }} size="lg" borderRadius="md" px={8}>
+            <Button as={RouterLink} to="/join-room" bg="primary" color="white" _hover={{ bg: 'primary-container' }} size="lg" borderRadius="md" px={8}>
               Enter the Classroom
             </Button>
             <Button variant="outline" bg="surface-container-low" color="on-surface" size="lg" borderRadius="md" px={8} _hover={{ bg: 'surface-container-highest' }}>
@@ -134,7 +135,7 @@ export default function Home() {
         <Box flex="1" position="relative" w="full">
           <Box
             bg="surface-container-low"
-            h="360px"
+            w="full"
             borderRadius="3xl"
             overflow="hidden"
             position="relative"
@@ -150,8 +151,8 @@ export default function Home() {
               poster={logoImg}
               style={{
                 width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+                height: 'auto',
+                display: 'block',
                 cursor: 'pointer'
               }}
             >

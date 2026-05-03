@@ -1,0 +1,20 @@
+# Frontend (not needed for backend Docker build)
+frontend/
+
+# Git
+.git/
+.github/
+
+# IDE
+Edu/.idea/
+*.iml
+
+# Build output (we rebuild inside Docker)
+Edu/target/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database init (not needed in container)
+database_init.sql

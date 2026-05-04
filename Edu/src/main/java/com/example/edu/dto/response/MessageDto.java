@@ -17,6 +17,7 @@ public class MessageDto {
     private Long boxChatId;
     private Long senderId;
     private String senderName;
+    private String senderAvatarUrl;
     private String content;
     private MessageType type;
     private LocalDateTime createdAt;

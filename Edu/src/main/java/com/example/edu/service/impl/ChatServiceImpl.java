@@ -191,6 +191,7 @@ public class ChatServiceImpl implements ChatService {
                 .boxChatId(message.getBoxChat().getId())
                 .senderId(message.getSender().getId())
                 .senderName(message.getSender().getFullName())
+                .senderAvatarUrl(message.getSender().getAvatarUrl())
                 .content(message.getContent())
                 .type(message.getType())
                 .createdAt(message.getCreatedAt())

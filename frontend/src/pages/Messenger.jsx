@@ -75,7 +75,7 @@ const MessageBubble = ({ msg, isMe, showAvatar }) => {
   return (
     <Flex w="full" gap={3} mb={4} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-end">
       {!isMe && showAvatar && (
-        <Avatar size="xs" name={msg.senderName} getInitials={getInitials} bg="primary" color="white" />
+        <Avatar size="xs" src={msg.senderAvatarUrl || undefined} name={msg.senderName} getInitials={getInitials} bg="primary" color="white" />
       )}
       {!isMe && !showAvatar && <Box w="24px" />}
       <Box
@@ -391,7 +391,8 @@ export default function Messenger() {
           </Flex>
 
           {/* Messages */}
-          <Box flex={1} p={6} overflowY="auto" display="flex" flexDirection="column" justifyContent="flex-end">
+          <Box flex={1} p={6} overflowY="auto" display="flex" flexDirection="column">
+            <Box flex={1} />
             {loadingMessages ? (
               <Flex justify="center" mt={4}><Spinner /></Flex>
             ) : messages.length === 0 ? (

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Flex, VStack, HStack, Text, Input, IconButton, Icon,
-  Avatar, Heading, useColorModeValue, Badge, Divider, Spinner, useToast
+  Avatar, Heading, useColorModeValue, Badge, Divider, Spinner, useToast,
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, useDisclosure
 } from '@chakra-ui/react';
 import { Search, Edit, Video, Phone, Info, Plus, Image as ImageIcon, Paperclip, Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import messengerService from '../services/messengerService';
+import friendService from '../services/friendService';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
@@ -110,6 +112,11 @@ export default function Messenger() {
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+
   const activeChatRef = useRef(activeChat);
 
   // Keep track of activeChat in a ref for the WebSocket callback
@@ -168,6 +175,33 @@ export default function Messenger() {
     };
   }, []);
 
+  const handleOpenNewChat = async () => {
+    onOpen();
+    setLoadingFriends(true);
+    try {
+      const data = await friendService.getFriends();
+      setFriends(data);
+    } catch (e) {
+      toast({ title: 'Lỗi tải danh sách bạn bè', status: 'error', duration: 2000 });
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  const handleStartChatWithFriend = async (friendId) => {
+    try {
+      const chat = await messengerService.getOrCreateOneToOneChat(friendId);
+      setBoxChats(prev => {
+        if (!prev.find(c => c.id === chat.id)) return [chat, ...prev];
+        return prev;
+      });
+      setActiveChat(chat);
+      onClose();
+    } catch (e) {
+      toast({ title: 'Lỗi tạo cuộc trò chuyện', status: 'error', duration: 2000 });
+    }
+  };
+
   // Load box chats
   useEffect(() => {
     const fetchChats = async () => {
@@ -225,6 +259,13 @@ export default function Messenger() {
     ? activeChat?.chatName
     : (otherUser?.fullName || otherUser?.username || 'Chat');
 
+  const filteredChats = boxChats.filter(c => {
+    if (!searchQuery) return true;
+    const other = c.members?.find(m => m.userId !== user?.userId);
+    const name = c.isGroup ? c.chatName : (other?.fullName || other?.username || '');
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <Flex h="calc(100vh - 73px)" bg={bgLevel1}>
       {/* Conversations List */}
@@ -238,21 +279,25 @@ export default function Messenger() {
       >
         <Flex p={4} justify="space-between" align="center">
           <Heading size="md">Messages</Heading>
-          <IconButton icon={<Edit size={18} />} variant="ghost" size="sm" aria-label="New Message" borderRadius="full" />
+          <IconButton onClick={handleOpenNewChat} icon={<Edit size={18} />} variant="ghost" size="sm" aria-label="New Message" borderRadius="full" />
         </Flex>
         <Box px={4} mb={4}>
           <HStack bg={bgLevel3} p={2} borderRadius="xl">
             <Icon as={Search} color="outline" ml={2} size={18} />
-            <Input variant="unstyled" placeholder="Search conversations..." size="sm" />
+            <Input 
+              variant="unstyled" placeholder="Search conversations..." size="sm" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </HStack>
         </Box>
         <Box flex={1} overflowY="auto" px={3}>
           {loadingChats ? (
             <Flex justify="center" mt={4}><Spinner /></Flex>
-          ) : boxChats.length === 0 ? (
-            <Text p={4} color="outline" textAlign="center" fontSize="sm">No conversations yet</Text>
+          ) : filteredChats.length === 0 ? (
+            <Text p={4} color="outline" textAlign="center" fontSize="sm">{searchQuery ? 'No conversations found' : 'No conversations yet'}</Text>
           ) : (
-            boxChats.map(chat => (
+            filteredChats.map(chat => (
               <ChatItem
                 key={chat.id} chat={chat}
                 active={activeChat?.id === chat.id}
@@ -349,6 +394,41 @@ export default function Messenger() {
           <Text color="outline" fontSize="lg">Select a conversation</Text>
         </Flex>
       )}
+
+      {/* New Chat Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
+        <ModalOverlay />
+        <ModalContent bg={bgLevel2}>
+          <ModalHeader>Bắt đầu trò chuyện mới</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {loadingFriends ? (
+              <Flex justify="center" py={4}><Spinner color="primary" /></Flex>
+            ) : friends.length === 0 ? (
+              <Text color="outline" textAlign="center" py={4}>Bạn chưa có bạn bè nào.</Text>
+            ) : (
+              <VStack align="stretch" spacing={2} maxH="400px" overflowY="auto">
+                {friends.map(friend => (
+                  <HStack 
+                    key={friend.id} 
+                    p={3} 
+                    bg={bgLevel3} 
+                    borderRadius="xl" 
+                    cursor="pointer"
+                    _hover={{ bg: 'primary', color: 'white' }}
+                    transition="all 0.2s"
+                    onClick={() => handleStartChatWithFriend(friend.id)}
+                  >
+                    <Avatar size="sm" src={friend.avatarUrl} name={friend.fullName} getInitials={getInitials} bg="primary" color="white" />
+                    <Text fontWeight="bold" fontSize="sm">{friend.fullName || 'Unknown'}</Text>
+                  </HStack>
+                ))}
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
     </Flex>
   );
 }

@@ -100,7 +100,9 @@ public class ChatServiceImpl implements ChatService {
         BoxChat boxChat = boxChatRepository.findById(boxChatId)
                 .orElseThrow(() -> new RuntimeException("BoxChat not found"));
 
-        if (!boxChat.getMembers().contains(sender)) {
+        boolean isMember = boxChat.getMembers().stream()
+                .anyMatch(m -> m.getId().equals(sender.getId()));
+        if (!isMember) {
             throw new RuntimeException("Sender is not a member of this chat");
         }
 
@@ -140,7 +142,9 @@ public class ChatServiceImpl implements ChatService {
         BoxChat boxChat = boxChatRepository.findById(boxChatId)
                 .orElseThrow(() -> new RuntimeException("BoxChat not found"));
 
-        if (!boxChat.getMembers().contains(user)) {
+        boolean isMember = boxChat.getMembers().stream()
+                .anyMatch(m -> m.getId().equals(user.getId()));
+        if (!isMember) {
             throw new RuntimeException("Not a member of this chat");
         }
 

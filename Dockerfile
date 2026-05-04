@@ -28,5 +28,7 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose the port (Render sets PORT env variable)
 EXPOSE 8080
 
-# Run the application with memory limits suitable for Render's 512MB free tier
-ENTRYPOINT ["java", "-Xmx300m", "-Xss512k", "-XX:CICompilerCount=2", "-Dfile.encoding=UTF-8", "-jar", "app.jar"]
+# Run the application with optimizations for slow CPUs and low memory (Render Free Tier)
+# -noverify and -XX:TieredStopAtLevel=1 dramatically speed up JVM startup time
+# -XX:+UseSerialGC uses the least amount of memory for Garbage Collection
+ENTRYPOINT ["java", "-noverify", "-XX:TieredStopAtLevel=1", "-Xmx256m", "-XX:MaxMetaspaceSize=128m", "-XX:+UseSerialGC", "-Dfile.encoding=UTF-8", "-jar", "app.jar"]

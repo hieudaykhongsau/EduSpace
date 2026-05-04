@@ -28,5 +28,5 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose the port (Render sets PORT env variable)
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application with memory limits suitable for Render's 512MB free tier
+ENTRYPOINT ["java", "-Xmx300m", "-Xss512k", "-XX:CICompilerCount=2", "-Dfile.encoding=UTF-8", "-jar", "app.jar"]

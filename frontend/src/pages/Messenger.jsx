@@ -21,6 +21,7 @@ const getInitials = (name) => {
 
 const timeLabel = (dateStr) => {
   if (!dateStr) return '';
+  if (!dateStr.endsWith('Z')) dateStr += 'Z';
   const d = new Date(dateStr);
   const now = new Date();
   const diff = now - d;
@@ -202,7 +203,7 @@ export default function Messenger() {
     }
   };
 
-  // Load box chats
+  // Load box chats AND friends list on page load
   useEffect(() => {
     const fetchChats = async () => {
       try {
@@ -215,7 +216,16 @@ export default function Messenger() {
         setLoadingChats(false);
       }
     };
+    const fetchFriends = async () => {
+      setLoadingFriends(true);
+      try {
+        const data = await friendService.getFriends();
+        setFriends(data);
+      } catch (e) { /* silent */ }
+      finally { setLoadingFriends(false); }
+    };
     fetchChats();
+    fetchFriends();
   }, []);
 
   // Load messages when active chat changes
@@ -294,8 +304,10 @@ export default function Messenger() {
         <Box flex={1} overflowY="auto" px={3}>
           {loadingChats ? (
             <Flex justify="center" mt={4}><Spinner /></Flex>
-          ) : filteredChats.length === 0 ? (
-            <Text p={4} color="outline" textAlign="center" fontSize="sm">{searchQuery ? 'No conversations found' : 'No conversations yet'}</Text>
+          ) : filteredChats.length === 0 && !searchQuery ? (
+            <Text p={4} color="outline" textAlign="center" fontSize="sm">No conversations yet</Text>
+          ) : filteredChats.length === 0 && searchQuery ? (
+            <Text p={4} color="outline" textAlign="center" fontSize="sm">No conversations found</Text>
           ) : (
             filteredChats.map(chat => (
               <ChatItem
@@ -305,6 +317,38 @@ export default function Messenger() {
                 currentUserId={user?.userId}
               />
             ))
+          )}
+
+          {/* Friends Section */}
+          {!searchQuery && (
+            <>
+              <Divider my={3} />
+              <Text fontSize="xs" fontWeight="bold" color="outline" px={2} mb={2} textTransform="uppercase" letterSpacing="wider">
+                Friends ({friends.length})
+              </Text>
+              {loadingFriends ? (
+                <Flex justify="center" py={2}><Spinner size="sm" /></Flex>
+              ) : friends.length === 0 ? (
+                <Text fontSize="xs" color="outline" textAlign="center" py={2}>No friends yet</Text>
+              ) : (
+                friends.map(friend => (
+                  <HStack
+                    key={friend.id}
+                    p={2} px={3}
+                    borderRadius="xl"
+                    cursor="pointer"
+                    _hover={{ bg: 'surface-container' }}
+                    transition="all 0.15s"
+                    onClick={() => handleStartChatWithFriend(friend.id)}
+                    mb={1}
+                  >
+                    <Avatar size="xs" src={friend.avatarUrl} name={friend.fullName} getInitials={getInitials} bg="primary" color="white" />
+                    <Text fontSize="sm" fontWeight="500" isTruncated>{friend.fullName || 'Unknown'}</Text>
+                    <Badge colorScheme="green" variant="solid" fontSize="6px" borderRadius="full" p="4px" ml="auto" />
+                  </HStack>
+                ))
+              )}
+            </>
           )}
         </Box>
       </Flex>

@@ -47,11 +47,21 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler({org.springframework.dao.DataAccessException.class, java.sql.SQLException.class})
+    public ResponseEntity<AuthResponse> handleDatabaseExceptions(Exception ex) {
+        // Log the actual exception for internal debugging
+        // ex.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(AuthResponse.builder()
+                        .message("Đã xảy ra lỗi hệ thống khi truy xuất dữ liệu. Vui lòng thử lại sau.")
+                        .build());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<AuthResponse> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(AuthResponse.builder()
-                        .message(ex.getMessage())
+                        .message("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
                         .build());
     }
 
@@ -59,7 +69,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<AuthResponse> handleGeneralException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(AuthResponse.builder()
-                        .message("An unexpected error occurred: " + ex.getMessage())
+                        .message("Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.")
                         .build());
     }
 }

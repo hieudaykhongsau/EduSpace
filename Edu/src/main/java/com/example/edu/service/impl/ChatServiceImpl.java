@@ -176,6 +176,8 @@ public class ChatServiceImpl implements ChatService {
                 .members(boxChat.getMembers().stream()
                         .map(u -> UserDto.builder()
                                 .id(u.getId())
+                                .userId(u.getId())
+                                .username(u.getUsername())
                                 .fullName(u.getFullName())
                                 .avatarUrl(u.getAvatarUrl())
                                 .build())

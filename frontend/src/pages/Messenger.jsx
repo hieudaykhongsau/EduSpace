@@ -391,7 +391,7 @@ export default function Messenger() {
           </Flex>
 
           {/* Messages */}
-          <Box flex={1} p={6} overflowY="auto" display="flex" flexDirection="column">
+          <Box flex={1} p={6} overflowY="auto" display="flex" flexDirection="column" justifyContent="flex-end">
             {loadingMessages ? (
               <Flex justify="center" mt={4}><Spinner /></Flex>
             ) : messages.length === 0 ? (

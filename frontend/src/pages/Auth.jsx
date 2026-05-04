@@ -159,7 +159,7 @@ const LoginForm = ({ setIsSignUp }) => {
 
 // Inline validation hint component
 const FieldHint = ({ text, isError }) => (
-  <Text fontSize="10px" color={isError ? 'red.400' : 'green.400'} px={1} mt={-1} w="100%" textAlign="left">
+  <Text fontSize="10px" color={isError ? 'red.400' : 'green.400'} px={1} mt={-2} mb={-1} w="100%" textAlign="left">
     {isError ? <XCircle size={10} style={{ display: 'inline', marginRight: 4 }} /> : <CheckCircle size={10} style={{ display: 'inline', marginRight: 4 }} />}
     {text}
   </Text>
@@ -284,7 +284,7 @@ const SignupForm = ({ setIsSignUp }) => {
   };
 
   return (
-    <VStack spacing={4} w="100%" h="100%" justify="center" py={2}>
+    <VStack spacing={2} w="100%" h="100%" justify="center" py={2} overflowY="auto">
       <AuthLogo />
       <Heading size="lg" color="on-surface" mb={1} fontFamily="heading">Create Account</Heading>
       <HStack spacing={4}>
@@ -324,10 +324,16 @@ const SignupForm = ({ setIsSignUp }) => {
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => handleChange('phone', e.target.value, setPhone)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
       </HStack>
-      {fieldErrors.email && <FieldHint text={fieldErrors.email} isError />}
-      {fieldSuccess.email && <FieldHint text={fieldSuccess.email} />}
-      {fieldErrors.phone && <FieldHint text={fieldErrors.phone} isError />}
-      {fieldSuccess.phone && <FieldHint text={fieldSuccess.phone} />}
+      <HStack spacing={2} w="100%" mt={-1}>
+        <Box w="50%">
+          {fieldErrors.email && <FieldHint text={fieldErrors.email} isError />}
+          {fieldSuccess.email && <FieldHint text={fieldSuccess.email} />}
+        </Box>
+        <Box w="50%">
+          {fieldErrors.phone && <FieldHint text={fieldErrors.phone} isError />}
+          {fieldSuccess.phone && <FieldHint text={fieldSuccess.phone} />}
+        </Box>
+      </HStack>
 
       <InputGroup size="sm" w="100%">
         <InputLeftElement pointerEvents="none"><Lock size={14} color="gray" /></InputLeftElement>
@@ -451,7 +457,7 @@ export default function Auth() {
         position="relative"
         w={{ base: "100%", md: "850px" }}
         maxW="100%"
-        h={{ base: "auto", md: "500px" }}
+        h={{ base: "auto", md: "540px" }}
         bg="surface-container"
         borderRadius="3xl"
         boxShadow="2xl"

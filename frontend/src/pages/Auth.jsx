@@ -81,7 +81,7 @@ const LoginForm = ({ setIsSignUp }) => {
           variant="outline" borderRadius="50px" w="full" h="40px" p={0}
           borderColor="surface-container-low" border="1px solid #ccc"
           _hover={{ bg: 'surface' }}
-          onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+          onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/oauth2/authorization/google`}
         >
           <GoogleIcon />
         </Button>
@@ -292,7 +292,7 @@ const SignupForm = ({ setIsSignUp }) => {
           variant="outline" borderRadius="50px" w="full" h="40px" p={0}
           borderColor="surface-container-low" border="1px solid #ccc"
           _hover={{ bg: 'surface' }}
-          onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+          onClick={() => window.location.href = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/oauth2/authorization/google`}
         >
           <GoogleIcon />
         </Button>

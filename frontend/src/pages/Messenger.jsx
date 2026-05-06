@@ -360,6 +360,7 @@ export default function Messenger() {
           direction="column" 
           bg={bgLevel1}
           display={{ base: activeChat ? 'flex' : 'none', md: 'flex' }}
+          overflow="hidden"
         >
           {/* Chat Header */}
           <Flex p={4} borderBottom="1px solid" borderColor="surface-container-high" justify="space-between" align="center">

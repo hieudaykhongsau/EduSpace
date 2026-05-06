@@ -38,6 +38,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isBellOpen, onToggle: onBellToggle, onClose: onBellClose } = useDisclosure();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -164,9 +165,9 @@ export default function Navbar() {
         {isAuthenticated ? (
           <HStack spacing={3}>
             {/* Bell notification */}
-            <Popover placement="bottom-end">
+            <Popover placement="bottom-end" isOpen={isBellOpen} onClose={onBellClose}>
               <PopoverTrigger>
-                <Box position="relative" cursor="pointer" color="on-surface" _hover={{ color: 'primary' }}>
+                <Box position="relative" cursor="pointer" color="on-surface" _hover={{ color: 'primary' }} onClick={onBellToggle}>
                   <Bell size={20} />
                   {unreadCount > 0 && (
                     <Badge

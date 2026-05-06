@@ -41,7 +41,8 @@ public class RoomServiceImpl implements RoomService {
 
         String roomCode = generateRoomCode();
         int maxParticipants = request.getMaxParticipants() != null ? request.getMaxParticipants() : 8;
-        if (maxParticipants > 8) maxParticipants = 8; // Khống chế tối đa là 8
+        if (maxParticipants > 8)
+            maxParticipants = 8; // Khống chế tối đa là 8
         RoomProvider roomType = request.getRoomTye() != null ? request.getRoomTye() : RoomProvider.PUBLIC;
 
         Room room = Room.builder()
@@ -84,13 +85,13 @@ public class RoomServiceImpl implements RoomService {
 
         // Only enroll if user is a Guest (has guest record in DB)
         if (currentUser instanceof Guest) {
-            int currentMembers = enrollmentRepository.findByRoomId(room.getId()).size();
+            int currentMembers = enrollmentRepository.findByRoom_Id(room.getId()).size();
             // Tổng số người = currentMembers (Guest) + 1 (Host)
             if (currentMembers + 1 >= room.getMaxParticipants()) {
                 throw new RuntimeException("Room is full");
             }
 
-            if (!enrollmentRepository.existsByRoomIdAndGuestId(room.getId(), currentUser.getId())) {
+            if (!enrollmentRepository.existsByRoom_IdAndGuest_Id(room.getId(), currentUser.getId())) {
                 Enrollment enrollment = Enrollment.builder()
                         .room(room)
                         .guest((Guest) currentUser)
@@ -118,7 +119,7 @@ public class RoomServiceImpl implements RoomService {
             closeRoom(roomCode);
         } else {
             // Remove enrollment
-            enrollmentRepository.findByRoomIdAndGuestId(room.getId(), currentUser.getId())
+            enrollmentRepository.findByRoom_IdAndGuest_Id(room.getId(), currentUser.getId())
                     .ifPresent(enrollmentRepository::delete);
             // Broadcast
             messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/peer-left", currentUser.getId());
@@ -163,7 +164,7 @@ public class RoomServiceImpl implements RoomService {
         int memberCount = 0;
         if (room.getId() != null) {
             // memberCount = số Guest + 1 (Host)
-            memberCount = enrollmentRepository.findByRoomId(room.getId()).size() + 1;
+            memberCount = enrollmentRepository.findByRoom_Id(room.getId()).size() + 1;
         }
 
         return RoomResponse.builder()

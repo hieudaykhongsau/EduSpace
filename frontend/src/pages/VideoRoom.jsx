@@ -29,7 +29,7 @@ const getInitials = (name) => {
 };
 
 // ─── Remote Peer Video ──────────────────────────────────────────────────────
-function RemoteVideo({ stream, peer, isMuted }) {
+function RemoteVideo({ stream, peer, isMuted, isCamOn = true }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -40,16 +40,18 @@ function RemoteVideo({ stream, peer, isMuted }) {
 
   return (
     <Box position="relative" bg="#1a1b1e" borderRadius="xl" overflow="hidden" aspectRatio="16/9">
-      {stream ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
-        />
-      ) : (
-        <Flex h="full" align="center" justify="center" direction="column" gap={3}>
-          <Avatar size="xl" name={peer?.fullName} getInitials={getInitials} bg="purple.600" color="white" />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        style={{ 
+          width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)',
+          display: (stream && isCamOn) ? 'block' : 'none'
+        }}
+      />
+      {(!stream || !isCamOn) && (
+        <Flex position="absolute" top={0} left={0} w="full" h="full" align="center" justify="center" direction="column" gap={3} bg="#1a1b1e">
+          <Avatar size="xl" name={peer?.fullName} getInitials={getInitials} src={peer?.avatarUrl} bg="purple.600" color="white" />
           <Text color="gray.300" fontSize="sm">{peer?.fullName || 'Peer'}</Text>
         </Flex>
       )}
@@ -86,10 +88,14 @@ export default function VideoRoom() {
   const [remoteStreams, setRemoteStreams] = useState({}); // { principalName: { stream, peer } }
   // Remote peers info
   const peersInfoRef = useRef({});
+  // ICE candidate queue
+  const iceCandidateQueueRef = useRef({});
 
   // UI state
+  const [remoteCamStates, setRemoteCamStates] = useState({});
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
+  const isCamOnRef = useRef(true);
   const [isLoading, setIsLoading] = useState(true);
   const [roomInfo, setRoomInfo] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -100,7 +106,13 @@ export default function VideoRoom() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720, facingMode: 'user' },
-        audio: { echoCancellation: true, noiseSuppression: true }
+        audio: { 
+          echoCancellation: true, 
+          noiseSuppression: true, 
+          autoGainControl: true,
+          // Những thông số mở rộng dưới đây sẽ giúp lọc tạp âm tốt hơn trên một số trình duyệt
+          advanced: [{ googEchoCancellation: true, googNoiseSuppression: true, googHighpassFilter: true }]
+        }
       });
       localStreamRef.current = stream;
       // Không gán trực tiếp ở đây vì video ref có thể chưa mount
@@ -201,6 +213,19 @@ export default function VideoRoom() {
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(payload));
+      
+      // Process any queued ICE candidates
+      if (iceCandidateQueueRef.current[senderId]) {
+        iceCandidateQueueRef.current[senderId].forEach(async (candidate) => {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.error('Error adding queued ICE candidate (offer):', e);
+          }
+        });
+        iceCandidateQueueRef.current[senderId] = [];
+      }
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       stompClientRef.current?.publish({
@@ -225,6 +250,18 @@ export default function VideoRoom() {
     if (pc) {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(payload));
+        
+        // Process any queued ICE candidates
+        if (iceCandidateQueueRef.current[senderId]) {
+          iceCandidateQueueRef.current[senderId].forEach(async (candidate) => {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.error('Error adding queued ICE candidate (answer):', e);
+            }
+          });
+          iceCandidateQueueRef.current[senderId] = [];
+        }
       } catch (err) {
         console.error('Error handling answer:', err);
       }
@@ -235,11 +272,18 @@ export default function VideoRoom() {
   const handleIceCandidate = useCallback(async (message) => {
     const { senderId, payload } = message;
     const pc = peerConnectionsRef.current[senderId];
-    if (pc && payload) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(payload));
-      } catch (err) {
-        console.error('Error adding ICE candidate:', err);
+    if (payload) {
+      if (pc && pc.remoteDescription) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(payload));
+        } catch (err) {
+          console.error('Error adding ICE candidate:', err);
+        }
+      } else {
+        if (!iceCandidateQueueRef.current[senderId]) {
+          iceCandidateQueueRef.current[senderId] = [];
+        }
+        iceCandidateQueueRef.current[senderId].push(payload);
       }
     }
   }, []);
@@ -304,9 +348,21 @@ export default function VideoRoom() {
                 peersInfoRef.current[peer.principalName] = peer;
                 setParticipants(prev => [...prev.filter(p => p.principalName !== peer.principalName), peer]);
                 toast({ title: `${peer.fullName || 'Someone'} joined`, status: 'info', duration: 2000 });
+                
+                // Trả lời trạng thái camera hiện tại của mình cho người mới vào
+                stompClient.publish({
+                  destination: `/topic/room/${roomCode}/cam-state`,
+                  body: JSON.stringify({ principalName: myPrincipalRef.current, isCamOn: isCamOnRef.current })
+                });
               }
             }
           );
+
+          // Subscribe: cam state updates
+          stompClient.subscribe(`/topic/room/${roomCode}/cam-state`, (msg) => {
+            const { principalName, isCamOn: remoteCamState } = JSON.parse(msg.body);
+            setRemoteCamStates(prev => ({ ...prev, [principalName]: remoteCamState }));
+          });
 
           // Subscribe: peer left
           stompClient.subscribe(
@@ -378,6 +434,13 @@ export default function VideoRoom() {
     if (videoTrack) {
       videoTrack.enabled = !videoTrack.enabled;
       setIsCamOn(videoTrack.enabled);
+      isCamOnRef.current = videoTrack.enabled;
+      
+      // Bắn trạng thái cam cho mọi người trong phòng
+      stompClientRef.current?.publish({
+        destination: `/topic/room/${roomCode}/cam-state`,
+        body: JSON.stringify({ principalName: myPrincipalRef.current, isCamOn: videoTrack.enabled })
+      });
     }
   };
 
@@ -487,7 +550,7 @@ export default function VideoRoom() {
 
             {/* Remote videos */}
             {remotePeersList.map(([principal, { stream, peer }]) => (
-              <RemoteVideo key={principal} stream={stream} peer={peer} />
+              <RemoteVideo key={principal} stream={stream} peer={peer} isCamOn={remoteCamStates[principal] ?? true} />
             ))}
           </Grid>
 

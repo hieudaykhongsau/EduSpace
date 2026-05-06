@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@Table(name = "rooms")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -33,7 +34,7 @@ public class Room {
     @Enumerated(EnumType.STRING)
     private RoomProvider roomTye;
 
-    @Column(name= "create_at", updatable = false)
+    @Column(name = "create_at", updatable = false)
     private LocalDateTime createAt;
 
     @Builder.Default
@@ -41,7 +42,7 @@ public class Room {
     @Enumerated(EnumType.STRING)
     private RoomStatus roomStatus = RoomStatus.ACTIVE;
 
-    @Column(name="password")
+    @Column(name = "password")
     private String password;
 
     @Column(name = "room_code", unique = true, nullable = false, length = 8)

@@ -83,20 +83,25 @@ const Post = ({ post, onLike, onComment }) => {
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
-    if (!dateStr.endsWith('Z')) dateStr += 'Z';
     const diff = Date.now() - new Date(dateStr).getTime();
+
+    if (diff <= 0) return 'vừa xong';
+
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return 'vừa xong';
+    if (mins < 60) return `${mins}m trước`;
+
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
+    if (hrs < 24) return `${hrs}h trước`;
+
+    return `${Math.floor(hrs / 24)}d trước`;
   };
 
   const cardBg = useColorModeValue('surface', 'surface');
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/community#post-${post.id}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -252,13 +257,27 @@ export default function Community() {
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [requestedUsers, setRequestedUsers] = useState(new Set()); // To track users we sent requests to
+
+  // Fetch suggested users
+  useEffect(() => {
+    const fetchSuggested = async () => {
+      try {
+        const results = await messengerService.searchUsers('');
+        setSuggestedUsers(results.filter(u => u.id !== user?.userId).slice(0, 5));
+      } catch (e) {
+        // no-op
+      }
+    };
+    if (user?.userId) fetchSuggested();
+  }, [user?.userId]);
 
   // Debounced search
   useEffect(() => {
     const handler = setTimeout(async () => {
-      if (searchKeyword.trim().length >= 2) {
+      if (searchKeyword.trim().length > 0) {
         setIsSearching(true);
         try {
           const results = await messengerService.searchUsers(searchKeyword);
@@ -322,21 +341,21 @@ export default function Community() {
       onConnect: () => {
         client.subscribe('/topic/community', (msg) => {
           const update = JSON.parse(msg.body);
-          
+
           if (update.type === 'NEW_POST') {
             // Add new post to top (if it's not from current user who already added it)
             setPosts(prev => {
               if (prev.some(p => p.id === update.data.id)) return prev;
               return [update.data, ...prev];
             });
-          } 
+          }
           else if (update.type === 'LIKE_UPDATE') {
-            setPosts(prev => prev.map(p => 
+            setPosts(prev => prev.map(p =>
               p.id === update.postId ? { ...p, likeCount: update.likeCount } : p
             ));
-          } 
+          }
           else if (update.type === 'COMMENT_UPDATE') {
-            setPosts(prev => prev.map(p => 
+            setPosts(prev => prev.map(p =>
               p.id === update.postId ? { ...p, commentCount: update.commentCount } : p
             ));
             // Trigger comment refresh for specific post if comments are open
@@ -548,22 +567,22 @@ export default function Community() {
       </Box>
 
       {/* Right Sidebar - Find Friends */}
-      <Box 
-        w="320px" 
-        bg={sidebarBg} 
-        borderLeftWidth="1px" 
-        borderColor="surface-container-high" 
-        p={6} 
+      <Box
+        w="320px"
+        bg={sidebarBg}
+        borderLeftWidth="1px"
+        borderColor="surface-container-high"
+        p={6}
         overflowY="auto"
         display={{ base: 'none', xl: 'block' }}
       >
         <Heading size="md" mb={6} color="on-surface">Find Friends</Heading>
         <HStack bg="surface" p={2} borderRadius="xl" mb={6} border="1px solid" borderColor="surface-container-highest">
           <Icon as={Search} color="outline" ml={2} size={18} />
-          <Input 
-            variant="unstyled" 
-            placeholder="Search users..." 
-            size="sm" 
+          <Input
+            variant="unstyled"
+            placeholder="Search users..."
+            size="sm"
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
           />
@@ -572,8 +591,33 @@ export default function Community() {
           <Text fontSize="xs" fontWeight="bold" color="outline" letterSpacing="wider">SUGGESTED FOR YOU</Text>
           {isSearching ? (
             <Flex justify="center"><Spinner size="sm" color="primary" /></Flex>
-          ) : searchResults.length > 0 ? (
-            searchResults.map(result => (
+          ) : searchKeyword.trim().length > 0 ? (
+            searchResults.length > 0 ? (
+              searchResults.map(result => (
+                <HStack key={result.id} justify="space-between" align="center">
+                  <HStack spacing={3}>
+                    <Avatar size="sm" src={result.avatarUrl} name={result.fullName || result.username} getInitials={getInitials} bg="primary" color="white" />
+                    <VStack align="start" spacing={0} maxW="120px">
+                      <Text fontSize="sm" fontWeight="bold" isTruncated w="full">{result.fullName || result.username}</Text>
+                    </VStack>
+                  </HStack>
+                  <IconButton 
+                    icon={<UserPlus size={16} />} 
+                    size="sm" 
+                    variant="ghost" 
+                    color="primary" 
+                    borderRadius="full" 
+                    aria-label="Add Friend" 
+                    isDisabled={requestedUsers.has(result.id)}
+                    onClick={() => handleAddFriend(result.id)}
+                  />
+                </HStack>
+              ))
+            ) : (
+              <Text fontSize="sm" color="outline" textAlign="center">Không tìm thấy ai</Text>
+            )
+          ) : suggestedUsers.length > 0 ? (
+            suggestedUsers.map(result => (
               <HStack key={result.id} justify="space-between" align="center">
                 <HStack spacing={3}>
                   <Avatar size="sm" src={result.avatarUrl} name={result.fullName || result.username} getInitials={getInitials} bg="primary" color="white" />
@@ -593,9 +637,9 @@ export default function Community() {
                 />
               </HStack>
             ))
-          ) : searchKeyword.trim().length >= 2 ? (
-            <Text fontSize="sm" color="outline" textAlign="center">Không tìm thấy ai</Text>
-          ) : null}
+          ) : (
+            <Text fontSize="sm" color="outline" textAlign="center">Chưa có gợi ý</Text>
+          )}
         </VStack>
       </Box>
     </Flex>

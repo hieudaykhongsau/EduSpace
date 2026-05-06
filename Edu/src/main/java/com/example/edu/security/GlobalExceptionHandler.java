@@ -18,8 +18,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> 
-            errors.put(error.getField(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
@@ -47,10 +47,14 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    @ExceptionHandler({org.springframework.dao.DataAccessException.class, java.sql.SQLException.class})
+    @ExceptionHandler({
+            org.springframework.dao.DataAccessException.class,
+            java.sql.SQLException.class,
+            jakarta.persistence.PersistenceException.class
+    })
     public ResponseEntity<AuthResponse> handleDatabaseExceptions(Exception ex) {
-        // Log the actual exception for internal debugging
-        // ex.printStackTrace();
+        // Log server-side for debugging
+        System.err.println("[DB Error] " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(AuthResponse.builder()
                         .message("Đã xảy ra lỗi hệ thống khi truy xuất dữ liệu. Vui lòng thử lại sau.")
@@ -59,9 +63,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<AuthResponse> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        System.err.println("[Runtime Error] " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        // Trả về message cụ thể cho các lỗi business logic (Room not found, Room is
+        // full, etc.)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(AuthResponse.builder()
-                        .message("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
+                        .message(ex.getMessage())
                         .build());
     }
 

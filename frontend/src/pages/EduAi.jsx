@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/axiosConfig';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -139,7 +143,11 @@ function ChatMessage({ msg, user, isSystemBot }) {
               <Text fontSize="sm" color="gray.500">Đang soạn câu trả lời...</Text>
             </HStack>
           ) : (
-            <Text fontSize="sm" lineHeight="tall" whiteSpace="pre-wrap">{msg.text}</Text>
+            <Box fontSize="sm" lineHeight="tall" sx={{ '& p:not(:last-child)': { mb: 2 }, '& pre': { bg: 'blackAlpha.300', p: 2, borderRadius: 'md', overflowX: 'auto', my: 2, _dark: { bg: 'whiteAlpha.200' } } }}>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {msg.text}
+              </ReactMarkdown>
+            </Box>
           )}
         </Box>
       </Flex>
@@ -149,7 +157,11 @@ function ChatMessage({ msg, user, isSystemBot }) {
   return (
     <Flex w="full" gap={3} mb={5} justify="flex-end" align="flex-end">
       <Box maxW="75%" bg={userBg} color="white" p={4} borderRadius="2xl" borderBottomRightRadius="sm">
-        <Text fontSize="sm" lineHeight="tall">{msg.text}</Text>
+        <Box fontSize="sm" lineHeight="tall" sx={{ '& p:not(:last-child)': { mb: 2 }, '& pre': { bg: 'blackAlpha.300', p: 2, borderRadius: 'md', overflowX: 'auto', my: 2, _dark: { bg: 'whiteAlpha.200' } } }}>
+          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            {msg.text}
+          </ReactMarkdown>
+        </Box>
       </Box>
       <Avatar
         size="sm"
@@ -258,7 +270,7 @@ function SystemBotPanel({ user }) {
       </Box>
 
       {/* Input */}
-      <Box p={4}>
+      <Box p={4} marginBottom="20px">
         <Flex bg={bgLevel3} p={2} borderRadius="2xl" align="center">
           <Input
             variant="unstyled" placeholder="Hỏi về EduSpace..." px={3}

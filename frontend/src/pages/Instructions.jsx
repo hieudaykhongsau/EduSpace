@@ -10,7 +10,9 @@ import {
   Settings, Bell, Sparkles, Layout,
 } from 'lucide-react';
 import qrCodeImage from '../assets/images/qr.png';
-
+import createRoomImage from '../assets/images/createRoom.png';
+import room from '../assets/images/room.png';
+import join from '../assets/images/join.png';
 const SidebarItem = ({ icon, label, active, onClick }) => {
   const activeBg = useColorModeValue('primary-container', 'rgba(26, 115, 232, 0.2)');
   const activeColor = 'primary';
@@ -128,18 +130,18 @@ export default function Instructions() {
                       Tại màn hình chính, nhấn vào nút <Text as="span" fontWeight="bold" color="primary">+ Tạo Lớp Học</Text> ở góc phải phía trên. Đây là trung tâm điều khiển của bạn.
                     </Text>
                   </VStack>
-                  <Box bg={cardBg} borderRadius="2xl" overflow="hidden" boxShadow="xl">
-                    <Image src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Dashboard" />
+                  <Box bg={cardBg} borderRadius="2xl" overflow="hidden" boxShadow="xl" w="100%">
+                    <Image src={room} alt="Dashboard" />
                   </Box>
 
-                  <Box bg="surface-container-low" borderRadius="2xl" p={8} h="250px" w="100%" display="flex" flexDirection="column" justify="center">
-                    <HStack spacing={2} mb={4}>
-                      <Box bg="blue.400" w="12px" h="12px" borderRadius="full" />
-                      <Box bg="purple.400" w="12px" h="12px" borderRadius="full" />
-                      <Box bg="green.400" w="12px" h="12px" borderRadius="full" />
-                    </HStack>
-                    <Box bg="surface" h="40px" borderRadius="md" mb={4} />
-                    <Box bg="surface" h="100px" borderRadius="md" />
+                  <Box bg="surface-container-low" borderRadius="2xl" overflow="hidden" h="215px" w="100%" >
+                    <Image
+                      src={createRoomImage}
+                      alt="Dashboard"
+                      boxSizing='content-box'
+                      w="100%"
+                      h="full"
+                    />
                   </Box>
                   <VStack align="start" spacing={4}>
                     <Badge colorScheme="purple" borderRadius="md" px={3}>BƯỚC 2</Badge>
@@ -150,14 +152,33 @@ export default function Instructions() {
                   </VStack>
                 </SimpleGrid>
               </Box>
+              {/* Section 3: Join Room */}
+              <Box w="100%" id="join" mb={16}>
+                <HStack spacing={4} mb={8}>
+                  <Flex bg="primary" color="white" w="36px" h="36px" borderRadius="full" align="center" justify="center" fontWeight="bold">3</Flex>
+                  <Heading size="lg">Tham gia phòng học</Heading>
+                </HStack>
 
-              {/* Section 3: AI */}
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={12} align="center">
+                  <VStack align="start" spacing={4} justify="center">
+                    <Badge colorScheme="green" borderRadius="md" px={3}>HƯỚNG DẪN</Badge>
+                    <Heading size="md">Nhập mã phòng</Heading>
+                    <Text fontSize="sm" opacity={0.7} textAlign="left">
+                      Nhấn vào nút <Text as="span" fontWeight="bold" color="primary">Join Room</Text> trên thanh điều hướng. Sau đó, nhập mã phòng (Room Code) do chủ phòng chia sẻ. Nếu phòng được đặt ở chế độ riêng tư, bạn cần nhập thêm mật khẩu để truy cập.
+                    </Text>
+                  </VStack>
+                  <Box bg={cardBg} borderRadius="2xl" overflow="hidden" boxShadow="xl" w="100%">
+                    <Image src={join} alt="Join Room" w="full" />
+                  </Box>
+                </SimpleGrid>
+              </Box>
+              {/* Section 4: AI */}
               <Box w="100%" id="ai">
                 <Box bg="card-accent" color="white" p={10} borderRadius="3xl" boxShadow="2xl" position="relative" overflow="hidden">
                   <Box position="absolute" top="-10%" right="-5%" w="300px" h="300px" bg="whiteAlpha.100" borderRadius="full" filter="blur(60px)" />
 
                   <HStack spacing={4} mb={10}>
-                    <Flex bg="whiteAlpha.200" color="white" w="36px" h="36px" borderRadius="full" align="center" justify="center" fontWeight="bold">3</Flex>
+                    <Flex bg="whiteAlpha.200" color="white" w="36px" h="36px" borderRadius="full" align="center" justify="center" fontWeight="bold">4</Flex>
                     <Heading size="lg">Sử dụng Chatbot AI</Heading>
                   </HStack>
 
@@ -212,7 +233,7 @@ export default function Instructions() {
                 </Box>
               </Box>
 
-              {/* Section 4: FAQ */}
+              {/* Section 5: FAQ */}
               <Box w="100%" id="faq">
                 <Heading size="lg" mb={8}>Câu hỏi thường gặp</Heading>
                 <Accordion allowMultiple>

@@ -25,6 +25,7 @@ export default function JoinRoom() {
   };
 
   const handleJoin = async () => {
+    if (loading) return;
     if (!validate()) return;
     setLoading(true);
     try {

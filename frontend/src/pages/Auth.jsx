@@ -187,7 +187,7 @@ const SignupForm = ({ setIsSignUp }) => {
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const PHONE_REGEX = /^(0|\+84)[0-9]{9}$/;
   const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
-  const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$/;
+  const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/;
 
   const validateField = useCallback((field, value) => {
     const newErrors = { ...fieldErrors };
@@ -301,7 +301,7 @@ const SignupForm = ({ setIsSignUp }) => {
 
       {error && <Text color="red.500" fontSize="xs" textAlign="center">{error}</Text>}
 
-      <HStack spacing={2} w="100%">
+      <HStack spacing={2} w="100%" marginBottom="8px">
         <InputGroup size="sm" w="50%">
           <InputLeftElement pointerEvents="none"><User size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Full Name *" value={fullName} onChange={(e) => setFullName(e.target.value)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
@@ -314,7 +314,7 @@ const SignupForm = ({ setIsSignUp }) => {
       {fieldErrors.username && <FieldHint text={fieldErrors.username} isError />}
       {fieldSuccess.username && <FieldHint text={fieldSuccess.username} />}
 
-      <HStack spacing={2} w="100%">
+      <HStack spacing={2} w="100%" marginBottom="8px">
         <InputGroup size="sm" w="50%">
           <InputLeftElement pointerEvents="none"><Mail size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Email *" value={email} onChange={(e) => handleChange('email', e.target.value, setEmail)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
@@ -324,7 +324,7 @@ const SignupForm = ({ setIsSignUp }) => {
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => handleChange('phone', e.target.value, setPhone)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
       </HStack>
-      <HStack spacing={2} w="100%" mt={-1}>
+      <HStack spacing={2} w="100%">
         <Box w="50%">
           {fieldErrors.email && <FieldHint text={fieldErrors.email} isError />}
           {fieldSuccess.email && <FieldHint text={fieldSuccess.email} />}
@@ -335,7 +335,7 @@ const SignupForm = ({ setIsSignUp }) => {
         </Box>
       </HStack>
 
-      <InputGroup size="sm" w="100%">
+      <InputGroup size="sm" w="100%" marginBottom="8px">
         <InputLeftElement pointerEvents="none"><Lock size={14} color="gray" /></InputLeftElement>
         <Input
           type={showPassword ? "text" : "password"}
@@ -364,7 +364,7 @@ const SignupForm = ({ setIsSignUp }) => {
       {fieldErrors.password && <FieldHint text={fieldErrors.password} isError />}
       {fieldSuccess.password && <FieldHint text={fieldSuccess.password} />}
 
-      <Flex w="100%" justify="space-between" align="center" px={1}>
+      <Flex w="100%" justify="space-between" align="center" px={1} marginBottom="8px">
         <Button
           as={RouterLink}
           to="/"

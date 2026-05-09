@@ -11,6 +11,10 @@ import java.util.Optional;
 @Repository
 public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long> {
     List<CommunityPost> findAllByOrderByCreatedAtDesc();
+
     long countByAuthor(User author);
+
     Optional<CommunityPost> findTopByAuthorOrderByCreatedAtDesc(User author);
+
+    void deleteById(Long id);
 }

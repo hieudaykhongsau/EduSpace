@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Flex, VStack, HStack, Text, Button, Input, IconButton, Icon,
   Avatar, Heading, useColorModeValue, InputGroup, InputLeftElement,
-  Spinner, Textarea, useToast
+  Spinner, Textarea, useToast, Menu, MenuButton, MenuList, MenuItem,
+  AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay
 } from '@chakra-ui/react';
 import {
   Home, MessageCircle, MoreHorizontal, ThumbsUp, MessageSquare,
-  Share2, LogOut, Image as ImageIcon, Paperclip, BarChart2, Search, UserPlus, Send, X
+  Share2, LogOut, Image as ImageIcon, Paperclip, BarChart2, Search, UserPlus, Send, X, Trash2
 } from 'lucide-react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,11 +49,16 @@ const SidebarItem = ({ icon, text, active, to, onClick }) => {
   );
 };
 
-const Post = ({ post, onLike, onComment }) => {
+const Post = ({ post, onLike, onComment, currentUserId, onDelete }) => {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  
+  // Alert dialog state
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const cancelRef = useRef();
+
   const toast = useToast();
 
   const handleToggleComments = async () => {
@@ -160,7 +166,53 @@ const Post = ({ post, onLike, onComment }) => {
             <Text fontSize="xs" color="outline">{timeAgo(post.createdAt)}</Text>
           </VStack>
         </HStack>
-        <IconButton icon={<MoreHorizontal size={20} />} variant="ghost" size="sm" aria-label="More" borderRadius="full" />
+        
+        {currentUserId === post.author?.id && (
+          <>
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                icon={<MoreHorizontal size={20} />}
+                variant="ghost"
+                size="sm"
+                aria-label="More"
+                borderRadius="full"
+              />
+              <MenuList>
+                <MenuItem icon={<Trash2 size={16} />} color="red.500" onClick={() => setIsAlertOpen(true)}>
+                  Xóa bài viết
+                </MenuItem>
+              </MenuList>
+            </Menu>
+
+            <AlertDialog
+              isOpen={isAlertOpen}
+              leastDestructiveRef={cancelRef}
+              onClose={() => setIsAlertOpen(false)}
+            >
+              <AlertDialogOverlay>
+                <AlertDialogContent>
+                  <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                    Xóa bài viết
+                  </AlertDialogHeader>
+
+                  <AlertDialogBody>
+                    Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.
+                  </AlertDialogBody>
+
+                  <AlertDialogFooter>
+                    <Button ref={cancelRef} onClick={() => setIsAlertOpen(false)}>
+                      Hủy
+                    </Button>
+                    <Button colorScheme="red" onClick={() => { setIsAlertOpen(false); onDelete(post.id); }} ml={3}>
+                      Xóa
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialogOverlay>
+            </AlertDialog>
+          </>
+        )}
       </Flex>
 
       <Text fontSize="md" mb={4}>{post.content}</Text>
@@ -439,6 +491,16 @@ export default function Community() {
     }
   };
 
+  const handleDeletePost = async (postId) => {
+    try {
+      await communityService.deletePost(postId);
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      toast({ title: 'Đã xóa bài viết', status: 'success', duration: 2000 });
+    } catch (error) {
+      toast({ title: 'Lỗi khi xóa bài viết', status: 'error', duration: 2000 });
+    }
+  };
+
   const handleLogout = () => {
     logout();
     window.location.href = '/';
@@ -560,7 +622,13 @@ export default function Community() {
             <Text textAlign="center" color="outline" mt={8}>No posts yet. Be the first!</Text>
           ) : (
             posts.map(post => (
-              <Post key={post.id} post={post} onLike={handleLike} />
+              <Post 
+                key={post.id} 
+                post={post} 
+                onLike={handleLike} 
+                currentUserId={user?.userId} 
+                onDelete={handleDeletePost} 
+              />
             ))
           )}
         </Box>

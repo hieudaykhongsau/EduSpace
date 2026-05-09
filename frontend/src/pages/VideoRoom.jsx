@@ -39,7 +39,7 @@ function RemoteVideo({ stream, peer, isCamOn = true }) {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
       // Đảm bảo video play khi nhận stream mới
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   }, [stream]);
 
@@ -53,7 +53,7 @@ function RemoteVideo({ stream, peer, isCamOn = true }) {
         ref={videoRef}
         autoPlay
         playsInline
-        style={{ 
+        style={{
           width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)',
           display: showVideo ? 'block' : 'none'
         }}
@@ -115,9 +115,9 @@ export default function VideoRoom() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720, facingMode: 'user' },
-        audio: { 
-          echoCancellation: true, 
-          noiseSuppression: true, 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
           autoGainControl: true,
           // Những thông số mở rộng dưới đây sẽ giúp lọc tạp âm tốt hơn trên một số trình duyệt
           advanced: [{ googEchoCancellation: true, googNoiseSuppression: true, googHighpassFilter: true }]
@@ -185,15 +185,12 @@ export default function VideoRoom() {
 
     // ICE connection state — xử lý restart khi failed
     pc.oniceconnectionstatechange = () => {
-      console.log(`ICE state [${targetPrincipal}]:`, pc.iceConnectionState);
       if (pc.iceConnectionState === 'failed') {
-        console.log('ICE failed, restarting...');
         pc.restartIce();
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log(`Connection state [${targetPrincipal}]:`, pc.connectionState);
       if (pc.connectionState === 'failed') {
         // Xóa peer và tạo lại offer
         pc.close();
@@ -210,7 +207,7 @@ export default function VideoRoom() {
     return pc;
   }, [roomCode]);
 
-  // ── Step 3: Initiate offer to a peer ────────────────────────────────────────
+  // ── Step 3: Initiate offer to a peer ────────────────────
   const createOffer = useCallback(async (targetPrincipal, peerInfo) => {
     const pc = createPeerConnection(targetPrincipal, peerInfo);
     try {
@@ -231,7 +228,7 @@ export default function VideoRoom() {
     }
   }, [createPeerConnection, roomCode]);
 
-  // ── Step 4: Handle incoming offer ───────────────────────────────────────────
+  // ── Step 4: Handle incoming offer ────────────────
   const handleOffer = useCallback(async (message) => {
     const { senderId, payload } = message;
     const peerInfo = peersInfoRef.current[senderId] || { principalName: senderId };
@@ -239,7 +236,7 @@ export default function VideoRoom() {
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(payload));
-      
+
       // Process any queued ICE candidates
       if (iceCandidateQueueRef.current[senderId]) {
         for (const candidate of iceCandidateQueueRef.current[senderId]) {
@@ -269,14 +266,14 @@ export default function VideoRoom() {
     }
   }, [createPeerConnection, roomCode]);
 
-  // ── Step 5: Handle incoming answer ──────────────────────────────────────────
+  // ── Step 5: Handle incoming answer ───────────────
   const handleAnswer = useCallback(async (message) => {
     const { senderId, payload } = message;
     const pc = peerConnectionsRef.current[senderId];
     if (pc) {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(payload));
-        
+
         // Process any queued ICE candidates
         if (iceCandidateQueueRef.current[senderId]) {
           for (const candidate of iceCandidateQueueRef.current[senderId]) {
@@ -294,7 +291,7 @@ export default function VideoRoom() {
     }
   }, []);
 
-  // ── Step 6: Handle ICE candidate ─────────────────────────────────────────────
+  // ── Step 6: Handle ICE candidate ─────────────
   const handleIceCandidate = useCallback(async (message) => {
     const { senderId, payload } = message;
     const pc = peerConnectionsRef.current[senderId];
@@ -314,7 +311,7 @@ export default function VideoRoom() {
     }
   }, []);
 
-  // ── Main init ────────────────────────────────────────────────────────────────
+  // ── Main init ─────────
   useEffect(() => {
     if (!roomCode || !user) return;
 
@@ -405,7 +402,7 @@ export default function VideoRoom() {
                 peersInfoRef.current[peer.principalName] = peer;
                 setParticipants(prev => [...prev.filter(p => p.principalName !== peer.principalName), peer]);
                 toast({ title: `${peer.fullName || 'Someone'} joined`, status: 'info', duration: 2000 });
-                
+
                 // Trả lời trạng thái camera hiện tại của mình cho người mới vào
                 stompClient.publish({
                   destination: `/topic/room/${roomCode}/cam-state`,
@@ -504,7 +501,7 @@ export default function VideoRoom() {
       videoTrack.enabled = !videoTrack.enabled;
       setIsCamOn(videoTrack.enabled);
       isCamOnRef.current = videoTrack.enabled;
-      
+
       // Bắn trạng thái cam cho mọi người trong phòng
       stompClientRef.current?.publish({
         destination: `/topic/room/${roomCode}/cam-state`,

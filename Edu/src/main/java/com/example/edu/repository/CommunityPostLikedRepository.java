@@ -11,5 +11,8 @@ import java.util.Optional;
 @Repository
 public interface CommunityPostLikedRepository extends JpaRepository<CommunityPostLiked, Long> {
     Optional<CommunityPostLiked> findByPostAndUser(CommunityPost post, User user);
+
     boolean existsByPostAndUser(CommunityPost post, User user);
+
+    void deleteByPostId(Long id);
 }

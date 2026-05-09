@@ -24,6 +24,11 @@ const communityService = {
   getComments: async (postId) => {
     const response = await api.get(`/api/community/post/${postId}/comments`);
     return response.data;
+  },
+
+  deletePost: async (postId) => {
+    const response = await api.delete(`/api/community/post/${postId}`);
+    return response.data;
   }
 };
 

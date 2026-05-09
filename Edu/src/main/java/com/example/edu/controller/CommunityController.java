@@ -45,7 +45,8 @@ public class CommunityController {
     }
 
     @PostMapping("/post/{postId}/comment")
-    public ResponseEntity<CommunityCommentDto> addComment(@PathVariable Long postId, @RequestBody AddCommentRequest request) {
+    public ResponseEntity<CommunityCommentDto> addComment(@PathVariable Long postId,
+            @RequestBody AddCommentRequest request) {
         User user = SecurityUtil.getCurrentUser();
         return ResponseEntity.ok(communityService.addComment(user, postId, request.getContent()));
     }
@@ -55,5 +56,11 @@ public class CommunityController {
         return ResponseEntity.ok(communityService.getPostComments(postId));
     }
 
+    @DeleteMapping("/post/{postId}")
+    public ResponseEntity<String> deletePost(@PathVariable Long postId) {
+        User user = SecurityUtil.getCurrentUser();
+        communityService.deletePost(postId);
+        return ResponseEntity.ok("Post deleted");
+    }
 
 }

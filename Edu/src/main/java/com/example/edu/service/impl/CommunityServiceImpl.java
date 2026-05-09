@@ -16,6 +16,8 @@ import com.example.edu.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.example.edu.security.SecurityUtil;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -61,7 +63,7 @@ public class CommunityServiceImpl implements CommunityService {
                 .content(content)
                 .mediaUrl(mediaUrl)
                 .build();
-        
+
         post = communityPostRepository.save(post);
         CommunityPostDto dto = mapToDto(post, false);
 
@@ -78,7 +80,8 @@ public class CommunityServiceImpl implements CommunityService {
     public List<CommunityPostDto> getAllPosts(User currentUser) {
         return communityPostRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(post -> {
-                    boolean isLiked = currentUser != null && communityPostLikedRepository.existsByPostAndUser(post, currentUser);
+                    boolean isLiked = currentUser != null
+                            && communityPostLikedRepository.existsByPostAndUser(post, currentUser);
                     return mapToDto(post, isLiked);
                 })
                 .collect(Collectors.toList());
@@ -108,8 +111,7 @@ public class CommunityServiceImpl implements CommunityService {
                         post.getAuthor(),
                         user,
                         NotificationType.LIKE,
-                        user.getFullName() + " đã thích bài viết của bạn"
-                );
+                        user.getFullName() + " đã thích bài viết của bạn");
             }
         }
         communityPostRepository.save(post);
@@ -132,7 +134,7 @@ public class CommunityServiceImpl implements CommunityService {
                 .author(author)
                 .content(content)
                 .build();
-        
+
         comment = communityCommentRepository.save(comment);
 
         post.setCommentCount(post.getCommentCount() + 1);
@@ -144,8 +146,7 @@ public class CommunityServiceImpl implements CommunityService {
                     post.getAuthor(),
                     author,
                     NotificationType.COMMENT,
-                    author.getFullName() + " đã bình luận về bài viết của bạn"
-            );
+                    author.getFullName() + " đã bình luận về bài viết của bạn");
         }
 
         CommunityCommentDto dto = mapCommentToDto(comment);
@@ -169,6 +170,22 @@ public class CommunityServiceImpl implements CommunityService {
         return communityCommentRepository.findByPostOrderByCreatedAtAsc(post).stream()
                 .map(this::mapCommentToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void deletePost(Long postId) {
+        CommunityPost post = communityPostRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+                
+        User currentUser = SecurityUtil.getCurrentUser();
+        if (currentUser == null || !post.getAuthor().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to delete this post");
+        }
+        
+        communityPostLikedRepository.deleteByPostId(postId);
+        communityCommentRepository.deleteByPostId(postId);
+        communityPostRepository.delete(post);
     }
 
     private CommunityPostDto mapToDto(CommunityPost post, boolean isLikedByCurrentUser) {
@@ -205,4 +222,5 @@ public class CommunityServiceImpl implements CommunityService {
                 .createdAt(comment.getCreatedAt())
                 .build();
     }
+
 }

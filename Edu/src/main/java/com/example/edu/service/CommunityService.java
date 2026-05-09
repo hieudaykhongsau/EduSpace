@@ -8,9 +8,14 @@ import java.util.List;
 
 public interface CommunityService {
     CommunityPostDto createPost(User author, String content, String mediaUrl);
+
     List<CommunityPostDto> getAllPosts(User currentUser);
+
     void toggleLike(User user, Long postId);
-    
+
     CommunityCommentDto addComment(User author, Long postId, String content);
+
     List<CommunityCommentDto> getPostComments(Long postId);
+
+    void deletePost(Long postId);
 }

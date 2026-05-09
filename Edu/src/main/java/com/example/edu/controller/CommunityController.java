@@ -58,7 +58,6 @@ public class CommunityController {
 
     @DeleteMapping("/post/{postId}")
     public ResponseEntity<String> deletePost(@PathVariable Long postId) {
-        User user = SecurityUtil.getCurrentUser();
         communityService.deletePost(postId);
         return ResponseEntity.ok("Post deleted");
     }

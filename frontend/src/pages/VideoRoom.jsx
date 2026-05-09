@@ -18,7 +18,10 @@ const ICE_SERVERS = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-  ]
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+  ],
+  iceCandidatePoolSize: 10
 };
 
 const WS_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080') + '/ws';
@@ -29,14 +32,20 @@ const getInitials = (name) => {
 };
 
 // ─── Remote Peer Video ──────────────────────────────────────────────────────
-function RemoteVideo({ stream, peer, isMuted, isCamOn = true }) {
+function RemoteVideo({ stream, peer, isCamOn = true }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
+      // Đảm bảo video play khi nhận stream mới
+      videoRef.current.play().catch(() => {});
     }
   }, [stream]);
+
+  // Kiểm tra stream có video track enabled không
+  const hasActiveVideo = stream && stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].enabled;
+  const showVideo = isCamOn && hasActiveVideo;
 
   return (
     <Box position="relative" bg="#1a1b1e" borderRadius="xl" overflow="hidden" aspectRatio="16/9">
@@ -46,10 +55,10 @@ function RemoteVideo({ stream, peer, isMuted, isCamOn = true }) {
         playsInline
         style={{ 
           width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)',
-          display: (stream && isCamOn) ? 'block' : 'none'
+          display: showVideo ? 'block' : 'none'
         }}
       />
-      {(!stream || !isCamOn) && (
+      {!showVideo && (
         <Flex position="absolute" top={0} left={0} w="full" h="full" align="center" justify="center" direction="column" gap={3} bg="#1a1b1e">
           <Avatar size="xl" name={peer?.fullName} getInitials={getInitials} src={peer?.avatarUrl} bg="purple.600" color="white" />
           <Text color="gray.300" fontSize="sm">{peer?.fullName || 'Peer'}</Text>
@@ -132,8 +141,10 @@ export default function VideoRoom() {
 
   // ── Step 2: Create peer connection for a remote peer ────────────────────────
   const createPeerConnection = useCallback((targetPrincipal, peerInfo) => {
+    // Nếu đã có connection, đóng cái cũ và tạo mới để tránh stale state
     if (peerConnectionsRef.current[targetPrincipal]) {
-      return peerConnectionsRef.current[targetPrincipal];
+      peerConnectionsRef.current[targetPrincipal].close();
+      delete peerConnectionsRef.current[targetPrincipal];
     }
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -148,10 +159,12 @@ export default function VideoRoom() {
     // Handle remote tracks
     pc.ontrack = (event) => {
       const [remoteStream] = event.streams;
-      setRemoteStreams(prev => ({
-        ...prev,
-        [targetPrincipal]: { stream: remoteStream, peer: peerInfo }
-      }));
+      if (remoteStream) {
+        setRemoteStreams(prev => ({
+          ...prev,
+          [targetPrincipal]: { stream: remoteStream, peer: peerInfo }
+        }));
+      }
     };
 
     // Handle ICE candidates
@@ -170,8 +183,21 @@ export default function VideoRoom() {
       }
     };
 
+    // ICE connection state — xử lý restart khi failed
+    pc.oniceconnectionstatechange = () => {
+      console.log(`ICE state [${targetPrincipal}]:`, pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed') {
+        console.log('ICE failed, restarting...');
+        pc.restartIce();
+      }
+    };
+
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+      console.log(`Connection state [${targetPrincipal}]:`, pc.connectionState);
+      if (pc.connectionState === 'failed') {
+        // Xóa peer và tạo lại offer
+        pc.close();
+        delete peerConnectionsRef.current[targetPrincipal];
         setRemoteStreams(prev => {
           const next = { ...prev };
           delete next[targetPrincipal];
@@ -216,13 +242,13 @@ export default function VideoRoom() {
       
       // Process any queued ICE candidates
       if (iceCandidateQueueRef.current[senderId]) {
-        iceCandidateQueueRef.current[senderId].forEach(async (candidate) => {
+        for (const candidate of iceCandidateQueueRef.current[senderId]) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(candidate));
           } catch (e) {
             console.error('Error adding queued ICE candidate (offer):', e);
           }
-        });
+        }
         iceCandidateQueueRef.current[senderId] = [];
       }
 
@@ -253,13 +279,13 @@ export default function VideoRoom() {
         
         // Process any queued ICE candidates
         if (iceCandidateQueueRef.current[senderId]) {
-          iceCandidateQueueRef.current[senderId].forEach(async (candidate) => {
+          for (const candidate of iceCandidateQueueRef.current[senderId]) {
             try {
               await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
               console.error('Error adding queued ICE candidate (answer):', e);
             }
-          });
+          }
           iceCandidateQueueRef.current[senderId] = [];
         }
       } catch (err) {
@@ -293,6 +319,18 @@ export default function VideoRoom() {
     if (!roomCode || !user) return;
 
     let stompClient;
+    let isCleanedUp = false;
+
+    // Hàm dọn dẹp tất cả peer connections (dùng khi reconnect hoặc unmount)
+    const cleanupAllPeers = () => {
+      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+      peerConnectionsRef.current = {};
+      iceCandidateQueueRef.current = {};
+      peersInfoRef.current = {};
+      setRemoteStreams({});
+      setParticipants([]);
+      setRemoteCamStates({});
+    };
 
     const init = async () => {
       setIsLoading(true);
@@ -319,16 +357,35 @@ export default function VideoRoom() {
       stompClient = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
         connectHeaders: { Authorization: `Bearer ${token}` },
-        reconnectDelay: 3000,
+        reconnectDelay: 5000,
+        heartbeatIncoming: 10000,
+        heartbeatOutgoing: 10000,
         onConnect: (frame) => {
-          // Extract principal name from frame
-          myPrincipalRef.current = user.username;
+          if (isCleanedUp) return;
+
+          // Khi reconnect, dọn dẹp peer connections cũ đã stale
+          cleanupAllPeers();
 
           // Subscribe: existing peers list (sent only to me when I join)
           stompClient.subscribe(
             `/user/queue/room/${roomCode}/existing-peers`,
             (msg) => {
               const existingPeers = JSON.parse(msg.body);
+
+              // TÌM principalName CỦA CHÍNH MÌNH từ danh sách backend trả về
+              // Backend dùng authentication.getName() = email (do Guest.getUsername() trả về email)
+              // Nên ta không hardcode user.username nữa, mà lấy đúng giá trị backend dùng.
+              const myPeer = existingPeers.find(p => p.userId === user.userId);
+              if (myPeer) {
+                myPrincipalRef.current = myPeer.principalName;
+              } else {
+                // Fallback: dùng email vì Guest.getUsername() trả về email
+                myPrincipalRef.current = user.email;
+              }
+
+              console.log('My principalName:', myPrincipalRef.current);
+              console.log('Existing peers:', existingPeers);
+
               existingPeers.forEach(peer => {
                 if (peer.principalName !== myPrincipalRef.current) {
                   peersInfoRef.current[peer.principalName] = peer;
@@ -361,7 +418,9 @@ export default function VideoRoom() {
           // Subscribe: cam state updates
           stompClient.subscribe(`/topic/room/${roomCode}/cam-state`, (msg) => {
             const { principalName, isCamOn: remoteCamState } = JSON.parse(msg.body);
-            setRemoteCamStates(prev => ({ ...prev, [principalName]: remoteCamState }));
+            if (principalName !== myPrincipalRef.current) {
+              setRemoteCamStates(prev => ({ ...prev, [principalName]: remoteCamState }));
+            }
           });
 
           // Subscribe: peer left
@@ -376,7 +435,13 @@ export default function VideoRoom() {
               if (targetPrincipal) {
                 peerConnectionsRef.current[targetPrincipal]?.close();
                 delete peerConnectionsRef.current[targetPrincipal];
+                delete peersInfoRef.current[targetPrincipal];
                 setRemoteStreams(prev => {
+                  const next = { ...prev };
+                  delete next[targetPrincipal];
+                  return next;
+                });
+                setRemoteCamStates(prev => {
                   const next = { ...prev };
                   delete next[targetPrincipal];
                   return next;
@@ -402,7 +467,10 @@ export default function VideoRoom() {
         },
         onStompError: (frame) => {
           console.error('STOMP error:', frame);
-          toast({ title: 'Connection error', status: 'error' });
+          toast({ title: 'Connection error', description: 'Attempting to reconnect...', status: 'error', duration: 3000 });
+        },
+        onWebSocketClose: () => {
+          console.log('WebSocket closed, will attempt reconnect...');
         }
       });
 
@@ -414,9 +482,10 @@ export default function VideoRoom() {
 
     return () => {
       // Cleanup on unmount
+      isCleanedUp = true;
       stompClient?.deactivate();
       localStreamRef.current?.getTracks().forEach(t => t.stop());
-      Object.values(peerConnectionsRef.current).forEach(pc => pc.close());
+      cleanupAllPeers();
     };
   }, [roomCode, user]);
 

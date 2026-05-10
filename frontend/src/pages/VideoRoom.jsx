@@ -17,9 +17,23 @@ const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
+    // TURN servers are required when users are on different networks (strict NATs/Firewalls)
+    // Using OpenRelay free TURN servers as a fallback
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ],
   iceCandidatePoolSize: 10
 };
@@ -430,6 +444,9 @@ export default function VideoRoom() {
               const targetPrincipal = Object.keys(peersInfoRef.current)
                 .find(k => peersInfoRef.current[k].userId === leftUserId);
               if (targetPrincipal) {
+                const leftUserName = peersInfoRef.current[targetPrincipal].fullName || peersInfoRef.current[targetPrincipal].principalName || 'Someone';
+                toast({ title: `${leftUserName} left the room`, status: 'info', duration: 2000 });
+
                 peerConnectionsRef.current[targetPrincipal]?.close();
                 delete peerConnectionsRef.current[targetPrincipal];
                 delete peersInfoRef.current[targetPrincipal];

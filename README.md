@@ -114,7 +114,6 @@ Dự án này được cấp phép dưới giấy phép [MIT](LICENSE) - xem fil
 ## 📧 Liên hệ
 
 - **Tác giả**: hieudaykhongsau
-- **Email**: [Thêm email của bạn]
 - **GitHub**: [@hieudaykhongsau](https://github.com/hieudaykhongsau)
 
 ## 🎯 Roadmap

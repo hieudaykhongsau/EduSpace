@@ -284,7 +284,7 @@ const SignupForm = ({ setIsSignUp }) => {
   };
 
   return (
-    <VStack spacing={2} w="100%" h="100%" justify="center" py={2} overflowY="auto">
+    <VStack spacing={{ base: 3, md: 2 }} w="100%" h="100%" justify="center" py={2} overflowY="auto">
       <AuthLogo />
       <Heading size="lg" color="on-surface" mb={1} fontFamily="heading">Create Account</Heading>
       <HStack spacing={4}>
@@ -301,41 +301,41 @@ const SignupForm = ({ setIsSignUp }) => {
 
       {error && <Text color="red.500" fontSize="xs" textAlign="center">{error}</Text>}
 
-      <HStack spacing={2} w="100%" marginBottom="8px">
-        <InputGroup size="sm" w="50%">
+      <Flex direction={{ base: "column", md: "row" }} gap={2} w="100%" marginBottom={{ base: 3, md: "8px" }}>
+        <InputGroup size={{ base: "md", md: "sm" }} w={{ base: "100%", md: "50%" }}>
           <InputLeftElement pointerEvents="none"><User size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Full Name *" value={fullName} onChange={(e) => setFullName(e.target.value)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
-        <InputGroup size="sm" w="50%">
+        <InputGroup size={{ base: "md", md: "sm" }} w={{ base: "100%", md: "50%" }}>
           <InputLeftElement pointerEvents="none"><User size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Username *" value={username} onChange={(e) => handleChange('username', e.target.value, setUsername)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
-      </HStack>
+      </Flex>
       {fieldErrors.username && <FieldHint text={fieldErrors.username} isError />}
       {fieldSuccess.username && <FieldHint text={fieldSuccess.username} />}
 
-      <HStack spacing={2} w="100%" marginBottom="8px">
-        <InputGroup size="sm" w="50%">
+      <Flex direction={{ base: "column", md: "row" }} gap={2} w="100%" marginBottom={{ base: 3, md: "8px" }}>
+        <InputGroup size={{ base: "md", md: "sm" }} w={{ base: "100%", md: "50%" }}>
           <InputLeftElement pointerEvents="none"><Mail size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Email *" value={email} onChange={(e) => handleChange('email', e.target.value, setEmail)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
-        <InputGroup size="sm" w="50%">
+        <InputGroup size={{ base: "md", md: "sm" }} w={{ base: "100%", md: "50%" }}>
           <InputLeftElement pointerEvents="none"><Phone size={14} color="gray" /></InputLeftElement>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => handleChange('phone', e.target.value, setPhone)} bg="surface" border="none" borderRadius="md" _focus={{ ring: 1, ringColor: "primary" }} />
         </InputGroup>
-      </HStack>
-      <HStack spacing={2} w="100%">
-        <Box w="50%">
+      </Flex>
+      <Flex direction={{ base: "column", md: "row" }} gap={2} w="100%">
+        <Box w={{ base: "100%", md: "50%" }}>
           {fieldErrors.email && <FieldHint text={fieldErrors.email} isError />}
           {fieldSuccess.email && <FieldHint text={fieldSuccess.email} />}
         </Box>
-        <Box w="50%">
+        <Box w={{ base: "100%", md: "50%" }}>
           {fieldErrors.phone && <FieldHint text={fieldErrors.phone} isError />}
           {fieldSuccess.phone && <FieldHint text={fieldSuccess.phone} />}
         </Box>
-      </HStack>
+      </Flex>
 
-      <InputGroup size="sm" w="100%" marginBottom="8px">
+      <InputGroup size={{ base: "md", md: "sm" }} w="100%" marginBottom={{ base: 3, md: "8px" }}>
         <InputLeftElement pointerEvents="none"><Lock size={14} color="gray" /></InputLeftElement>
         <Input
           type={showPassword ? "text" : "password"}
@@ -387,7 +387,7 @@ const SignupForm = ({ setIsSignUp }) => {
           Already have an account?
         </ChakraLink>
       </Flex>
-      <Button onClick={handleSubmit} isLoading={isLoading} isDisabled={Object.keys(fieldErrors).length > 0} w="80%" size="sm" bg="primary" color="white" _hover={{ bg: 'primary-container', transform: 'translateY(-1px)' }} _active={{ transform: 'translateY(0)' }} borderRadius="full" boxShadow="sm">
+      <Button onClick={handleSubmit} isLoading={isLoading} isDisabled={Object.keys(fieldErrors).length > 0} w={{ base: "100%", md: "80%" }} size="sm" bg="primary" color="white" _hover={{ bg: 'primary-container', transform: 'translateY(-1px)' }} _active={{ transform: 'translateY(0)' }} borderRadius="full" boxShadow="sm">
         SIGN UP
       </Button>
     </VStack>

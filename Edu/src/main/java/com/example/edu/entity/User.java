@@ -37,7 +37,7 @@ public abstract class User implements UserDetails {
     @Column(name = "full_name", length = 100)
     private String fullName;
 
-    @Column(name = "avatar_url", columnDefinition = "LONGTEXT")
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
     @Column(name = "phone", length = 20)

@@ -5,10 +5,8 @@ import com.example.edu.dto.request.SendMessageRequest;
 import com.example.edu.dto.response.BoxChatDto;
 import com.example.edu.dto.response.MessageDto;
 import com.example.edu.entity.User;
-import com.example.edu.enums.MessageType;
 import com.example.edu.security.SecurityUtil;
 import com.example.edu.service.ChatService;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -17,7 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -53,7 +50,8 @@ public class MessengerController {
     }
 
     @PostMapping("/box/{boxId}/messages")
-    public ResponseEntity<MessageDto> sendMessageRest(@PathVariable Long boxId, @RequestBody SendMessageRequest request) {
+    public ResponseEntity<MessageDto> sendMessageRest(@PathVariable Long boxId,
+            @RequestBody SendMessageRequest request) {
         User user = SecurityUtil.getCurrentUser();
         request.setBoxChatId(boxId);
         MessageDto msg = chatService.sendMessage(user, boxId, request.getContent(), request.getType());

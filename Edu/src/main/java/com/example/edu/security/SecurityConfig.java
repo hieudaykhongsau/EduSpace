@@ -40,7 +40,8 @@ public class SecurityConfig {
                                                 .frameOptions(frame -> frame.deny()))
                                 // 3. Phân quyền đường dẫn
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/ws/**", "/api/chat/**")
+                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/ws/**", "/api/chat/**",
+                                                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                                                 .permitAll()
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/guest/**").hasAnyRole("GUEST")
